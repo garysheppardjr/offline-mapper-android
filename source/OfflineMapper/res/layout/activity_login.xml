@@ -15,37 +15,4 @@
         clientid="NYDELCv4UUrShTIv"
         portalurl="https://www.arcgis.com"/>
 
-    <!-- TextView
-        android:id="@+id/usernameLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/username" />
-    <EditText
-        android:id="@+id/username"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/usernameLabel"
-        android:inputType="text" />
-    <TextView
-        android:id="@+id/passwordLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/username"
-        android:text="@string/password" />
-    <EditText
-        android:id="@+id/password"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/passwordLabel"
-        android:imeOptions="actionGo"
-        android:inputType="textPassword" />
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/password"
-        android:layout_alignParentRight="true"
-        android:focusable="false"
-        android:text="@string/login"
-        android:onClick="login" /-->
-
 </RelativeLayout>
