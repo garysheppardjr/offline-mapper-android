@@ -8,5 +8,11 @@
     <string name="username">Username</string>
     <string name="password">Password</string>
     <string name="login">Login</string>
+    <string name="enter_pin">Enter your PIN</string>
+    <string name="create_pin">Create a PIN</string>
+    <string name="confirm_pin">Type your PIN again</string>
+    <string name="ok">OK</string>
+    <string name="error_pin_mismatch">Your PIN entries didn\'t match. Try again.</string>
+    <string name="logout">Logout</string>
     
 </resources>

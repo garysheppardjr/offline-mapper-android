@@ -15,38 +15,204 @@
  ******************************************************************************/
 package com.esri.wdc.offlinemapper;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.DESKeySpec;
+
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Base64;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
 
 import com.esri.android.oauth.OAuthView;
 import com.esri.core.io.UserCredentials;
 import com.esri.core.map.CallbackListener;
 
 public class LoginActivity extends Activity {
+    
+    private static final String TAG = LoginActivity.class.getSimpleName();
+    private static final String USER_CREDENTIALS_KEY = "UserCredentials";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
         
-        OAuthView oauthView = (OAuthView) findViewById(R.id.oauthView);
-        oauthView.setCallbackListener(new CallbackListener<UserCredentials>() {
+        doLogin();
+    }
+    
+    private void doLogin() {
+        final SharedPreferences prefs = this.getPreferences(MODE_PRIVATE);
+        final String userCredsString = prefs.getString(USER_CREDENTIALS_KEY, null);
+        if (null == userCredsString) {        
+            setContentView(R.layout.activity_login);
             
-            public void onError(Throwable e) {
-                // TODO Auto-generated method stub
+            OAuthView oauthView = (OAuthView) findViewById(R.id.oauthView);
+            oauthView.setCallbackListener(new CallbackListener<UserCredentials>() {
                 
-            }
+                public void onError(Throwable e) {
+                    
+                }
+                
+                public void onCallback(final UserCredentials userCredentials) {
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            doCreatePin(userCredentials, null);
+                        }
+                    });
+                }
+            });
+        } else {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    doEnterPin(userCredsString, null);
+                }
+            });
+        }
+    }
+    
+    private void doCreatePin(final UserCredentials userCredentials, String error) {
+        setContentView(R.layout.activity_login_pin);
+        final EditText editText = (EditText) findViewById(R.id.editText_pin);
+        if (null != error) {
+            editText.setError(error);
+        }
+        ((TextView) findViewById(R.id.textView_pinLabel)).setText(getString(R.string.create_pin));
+        final Button okButton = (Button) findViewById(R.id.button_ok);
+        okButton.setOnClickListener(new OnClickListener() {
             
-            public void onCallback(UserCredentials userCredentials) {
-                Intent i = new Intent(getApplicationContext(), MapChooserActivity.class);
-                i.putExtra(MapChooserActivity.EXTRA_USER_CREDENTIALS, userCredentials);
-                startActivity(i);
+            public void onClick(View v) {
+                final String firstPin = editText.getText().toString().trim();
+                editText.setText("");
+                ((TextView) findViewById(R.id.textView_pinLabel)).setText(getString(R.string.confirm_pin));
+                okButton.setOnClickListener(new OnClickListener() {
+                    
+                    public void onClick(View v) {
+                        String secondPin = editText.getText().toString().trim();
+                        if (0 < firstPin.length() && firstPin.equals(secondPin)) {
+                            String enc = encryptIt(userCredentials, Integer.parseInt(firstPin));
+                            SharedPreferences prefs = LoginActivity.this.getPreferences(MODE_PRIVATE);
+                            prefs.edit()
+                                .putString(USER_CREDENTIALS_KEY, enc)
+                                .commit();
+                            
+                                startMapChooserActivity(userCredentials);
+                        } else {
+                            doCreatePin(userCredentials, getString(R.string.error_pin_mismatch));
+                        }
+                    }
+                });
+            }
+        });
+        editText.requestFocus();
+    }
+    
+    private void doEnterPin(final String encryptedCredentials, String error) {
+        setContentView(R.layout.activity_login_pin);
+        final EditText editText = (EditText) findViewById(R.id.editText_pin);
+        if (null != error) {
+            editText.setError(error);
+        }
+        ((TextView) findViewById(R.id.textView_pinLabel)).setText(getString(R.string.enter_pin));
+        ((Button) findViewById(R.id.button_ok)).setOnClickListener(new OnClickListener() {
+            
+            public void onClick(View v) {
+                try {
+                    UserCredentials userCredentials = (UserCredentials) decryptIt(encryptedCredentials, Integer.parseInt(editText.getText().toString()));
+                    startMapChooserActivity(userCredentials);
+                } catch (Throwable t) {
+                    editText.setText("");
+                    doEnterPin(encryptedCredentials, "Incorrect PIN");
+                }
             }
         });
     }
+    
+    private void startMapChooserActivity(UserCredentials userCredentials) {
+        Intent i = new Intent(getApplicationContext(), MapChooserActivity.class);
+        i.putExtra(MapChooserActivity.EXTRA_USER_CREDENTIALS, userCredentials);
+        startActivity(i);
+    }
+    
+    public void logout(View view) {
+        getPreferences(MODE_PRIVATE).edit().remove(USER_CREDENTIALS_KEY).commit();
+        doLogin();
+    }
+    
+    private static String fixSeed(int seed) {
+        seed *= 2;
+        String seedString = Integer.toString(seed);
+        while (8 > seedString.length()) {
+            seedString += "0";
+        }
+        return seedString;
+    }
+    
+    private static String encryptIt(Serializable object, int seed) {
+        String seedString = fixSeed(seed);
+        
+        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+        try {
+            ObjectOutputStream outstream = new ObjectOutputStream(byteOut);
+            outstream.writeObject(object);
+            outstream.close();
+
+            DESKeySpec keySpec = new DESKeySpec(seedString.getBytes("UTF8"));
+            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
+            SecretKey key = keyFactory.generateSecret(keySpec);
+            
+            // Cipher is not thread safe
+            Cipher cipher = Cipher.getInstance("DES");
+            cipher.init(Cipher.ENCRYPT_MODE, key);
+
+            String encrypedValue = Base64.encodeToString(cipher.doFinal(byteOut.toByteArray()), Base64.DEFAULT);
+            return encrypedValue;
+        } catch (Throwable t) {
+            Log.e(TAG, "Couldn't encrypt", t);
+            return null;
+        }
+    }
+    
+    private static Object decryptIt(String value, int seed)
+            throws IOException, InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, ClassNotFoundException {
+        String seedString = fixSeed(seed);
+
+        DESKeySpec keySpec = new DESKeySpec(seedString.getBytes("UTF8"));
+        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
+        SecretKey key = keyFactory.generateSecret(keySpec);
+
+        byte[] encrypedPwdBytes = Base64.decode(value, Base64.DEFAULT);
+        // cipher is not thread safe
+        Cipher cipher = Cipher.getInstance("DES");
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        byte[] decrypedValueBytes = (cipher.doFinal(encrypedPwdBytes));
+        
+        ByteArrayInputStream byteIn = new ByteArrayInputStream(decrypedValueBytes);
+        ObjectInputStream objIn = new ObjectInputStream(byteIn);
+        return objIn.readObject();
+    } 
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
