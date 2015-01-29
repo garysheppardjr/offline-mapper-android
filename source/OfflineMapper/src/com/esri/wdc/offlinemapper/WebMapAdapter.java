@@ -52,45 +52,53 @@ public class WebMapAdapter extends BaseAdapter {
     public WebMapAdapter(Activity activity, UserCredentials userCredentials) {
         this.activity = activity;
         portal = new Portal("https://www.arcgis.com", userCredentials);
-        doInitialSearch();
+        doSearch(0);
     }
     
-    private void doInitialSearch() {
-        AsyncTask<Void, Void, PortalQueryResultSet<PortalItem>> task = new AsyncTask<Void, Void, PortalQueryResultSet<PortalItem>>() {
-
-            @Override
-            protected PortalQueryResultSet<PortalItem> doInBackground(Void... v) {
-                try {
-                    PortalQueryParams params = new PortalQueryParams("owner:" + portal.getCredentials().getUserName() + " AND type:Web Map");
-                    return portal.findItems(params);
-                } catch (Exception e) {
-                    Log.e(TAG, "Error doing initial search", e);
-                    return null;
-                }
-            }
-            
-            @Override
-            protected void onPostExecute(PortalQueryResultSet<PortalItem> result) {
-                //This gives us 1) the total number of results and 2) the first subset of results.
-                synchronized (resultSetLock) {
-                    totalResultCount = result.getTotalResults();
-                    resultsByIndex.clear();
-                    thumbnailsByItemId.clear();
-                    List<PortalItem> results = result.getResults();
-                    for (int i = 0; i < results.size(); i++) {
-                        Log.d(TAG, "result " + i + " is " + results.get(i).getTitle());
-                        resultsByIndex.put(i, results.get(i));
+    private void doSearch(final int neededIndex) {
+        //Check to see if this search is still needed
+        synchronized (resultSetLock) {
+            if (!resultsByIndex.containsKey(neededIndex)) {
+                AsyncTask<Void, Void, PortalQueryResultSet<PortalItem>> task = new AsyncTask<Void, Void, PortalQueryResultSet<PortalItem>>() {
+                    
+                    @Override
+                    protected PortalQueryResultSet<PortalItem> doInBackground(Void... v) {
+                        try {
+                            PortalQueryParams params = new PortalQueryParams("owner:" + portal.getCredentials().getUserName() + " AND type:Web Map");
+                            params.setStartIndex(neededIndex / 10 * 10 + 1);
+                            return portal.findItems(params);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error doing initial search", e);
+                            return null;
+                        }
                     }
-                }
-                notifyDataSetChanged();
+                    
+                    @Override
+                    protected void onPostExecute(PortalQueryResultSet<PortalItem> result) {
+                        //This gives us 1) the total number of results and 2) a subset of results.
+                        synchronized (resultSetLock) {
+                            totalResultCount = result.getTotalResults();
+                            resultsByIndex.clear();
+                            thumbnailsByItemId.clear();
+                        }
+                        List<PortalItem> results = result.getResults();
+                        for (int i = 0; i < results.size(); i++) {
+                            Log.d(TAG, "putting result " + (i + result.getQueryParams().getStartIndex() - 1) + ": " + results.get(i).getTitle());
+                            synchronized (resultSetLock) {//TODO consider moving outside of for loop
+                                resultsByIndex.put(i + result.getQueryParams().getStartIndex() - 1, results.get(i));
+                            }
+                        }
+                        notifyDataSetChanged();
+                    }
+                    
+                };
+                task.execute(new Void[0]);
             }
-            
-        };
-        task.execute(new Void[0]);
+        }
     }
     
     private Bitmap getThumbnail(PortalItem item) throws Exception {
-        Bitmap thumbnail;
+        Bitmap thumbnail = null;
         synchronized (resultSetLock) {
             thumbnail = thumbnailsByItemId.get(item.getItemId());
         }
@@ -122,66 +130,66 @@ public class WebMapAdapter extends BaseAdapter {
     }
 
     public View getView(final int position, View convertView, ViewGroup parent) {
+        Log.d(TAG, "getView " + position + "; view is " + (null == convertView ? "" : "NOT ") + "null");
         ViewGroup viewToReturn;
         
         if (convertView == null) {
             LinearLayout layout = new LinearLayout(activity);
             layout.setOrientation(LinearLayout.VERTICAL);
             
-            ImageView imageView = new ImageView(activity) {
-                @Override
-                public void invalidate() {
-                    Log.d(TAG, "Invalidating " + position);
-                    super.invalidate();
-                }
-            };
+            final ImageView imageView = new ImageView(activity);
             imageView.setLayoutParams(new GridView.LayoutParams(200, 133));
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
             imageView.setPadding(8, 8, 8, 8);
             layout.addView(imageView);
             
-            TextView textView = new TextView(activity);
+            final TextView textView = new TextView(activity);
             layout.addView(textView);
             
             viewToReturn = layout;
+            
+            PortalItem item = null;
+            synchronized (resultSetLock) {
+                item = resultsByIndex.get(position);
+            }
+            if (null == item) {
+                doSearch(position);
+            }
+            synchronized (resultSetLock) {
+                item = resultsByIndex.get(position);
+            }
+            if (null != item) {
+                final String itemName = item.getTitle();
+                activity.runOnUiThread(new Runnable() {
+                    public void run() {
+                        textView.setText(itemName);
+                    }
+                });
+                
+                new AsyncTask<PortalItem, Void, Bitmap>() {
+                    protected Bitmap doInBackground(PortalItem... params) {
+                        try {
+                            return getThumbnail(params[0]);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Couldn't get thumbnail for item " + params[0].getItemId(), e);
+                            return null;
+                        }
+                    };
+                    
+                    protected void onPostExecute(final Bitmap result) {
+                        activity.runOnUiThread(new Runnable() {
+                            
+                            public void run() {
+                                imageView.setImageBitmap(result);
+                            }
+                        });
+                    };                
+                }.execute(new PortalItem[] { item });
+            }
         } else {
             viewToReturn = (ViewGroup) convertView;
         }
-        final ImageView imageView = (ImageView) viewToReturn.getChildAt(0);
-
-        PortalItem item = null;
-        synchronized (resultSetLock) {
-            item = resultsByIndex.get(position);
-        }
-        if (null != item) {
-            final TextView textView = (TextView) viewToReturn.getChildAt(1);
-            final String itemName = item.getTitle();
-            activity.runOnUiThread(new Runnable() {
-                public void run() {
-                    textView.setText(itemName);
-                }
-            });
-            
-            new AsyncTask<PortalItem, Void, Bitmap>() {
-                protected Bitmap doInBackground(PortalItem... params) {
-                    try {
-                        return getThumbnail(params[0]);
-                    } catch (Exception e) {
-                        Log.e(TAG, "Couldn't get thumbnail for item " + params[0].getItemId(), e);
-                        return null;
-                    }
-                };
-                
-                protected void onPostExecute(final Bitmap result) {
-                    activity.runOnUiThread(new Runnable() {
-                        
-                        public void run() {
-                            imageView.setImageBitmap(result);
-                        }
-                    });
-                };                
-            }.execute(new PortalItem[] { item });
-        }
+        
         return viewToReturn;
     }
 
