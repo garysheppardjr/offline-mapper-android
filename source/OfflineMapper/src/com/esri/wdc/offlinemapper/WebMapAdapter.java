@@ -145,6 +145,7 @@ public class WebMapAdapter extends BaseAdapter {
             layout.addView(imageView);
             
             textView = new TextView(activity);
+            textView.setTextColor(0xffffffff);
             layout.addView(textView);
         } else {
             layout = (LinearLayout) convertView;
@@ -169,6 +170,10 @@ public class WebMapAdapter extends BaseAdapter {
             }
         }
         return layout;
+    }
+    
+    public Portal getPortal() {
+        return portal;
     }
 
 }

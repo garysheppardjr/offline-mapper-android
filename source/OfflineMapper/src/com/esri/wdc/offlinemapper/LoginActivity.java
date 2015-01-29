@@ -48,6 +48,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import com.esri.android.oauth.OAuthView;
+import com.esri.android.runtime.ArcGISRuntime;
 import com.esri.core.io.UserCredentials;
 import com.esri.core.map.CallbackListener;
 
@@ -59,6 +60,8 @@ public class LoginActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        ArcGISRuntime.setClientId(getString(R.string.clientId));
         
         doLogin();
     }

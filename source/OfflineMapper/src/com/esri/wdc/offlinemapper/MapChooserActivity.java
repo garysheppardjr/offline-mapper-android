@@ -16,6 +16,7 @@
 package com.esri.wdc.offlinemapper;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -23,10 +24,9 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.GridView;
-import android.widget.Toast;
 
 import com.esri.core.io.UserCredentials;
-import com.esri.core.portal.Portal;
+import com.esri.core.portal.PortalItem;
 
 public class MapChooserActivity extends Activity {
     
@@ -39,12 +39,19 @@ public class MapChooserActivity extends Activity {
         
         Object credsObject = getIntent().getExtras().get(EXTRA_USER_CREDENTIALS);
         if (credsObject instanceof UserCredentials) {
+            final UserCredentials userCredentials = (UserCredentials) credsObject;
             GridView gridview = (GridView) findViewById(R.id.gridview);
-            gridview.setAdapter(new WebMapAdapter(this, (UserCredentials) credsObject));
+            final WebMapAdapter adapter = new WebMapAdapter(this, userCredentials);
+            gridview.setAdapter(adapter);
 
             gridview.setOnItemClickListener(new OnItemClickListener() {
                 public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
-                    Toast.makeText(MapChooserActivity.this, "" + position, Toast.LENGTH_SHORT).show();
+                    PortalItem item = (PortalItem) adapter.getItem(position);
+                    Intent intent = new Intent(MapChooserActivity.this.getApplicationContext(), MapActivity.class);
+                    intent.putExtra(MapActivity.EXTRA_PORTAL_URL, adapter.getPortal().getUrl());
+                    intent.putExtra(MapActivity.EXTRA_WEB_MAP_ID, item.getItemId());
+                    intent.putExtra(MapActivity.EXTRA_USER_CREDENTIALS, userCredentials);
+                    startActivity(intent);
                 }
             });
         }

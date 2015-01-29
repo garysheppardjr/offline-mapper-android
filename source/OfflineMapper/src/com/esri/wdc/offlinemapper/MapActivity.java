@@ -19,19 +19,29 @@ import android.app.Activity;
 import android.os.Bundle;
 
 import com.esri.android.map.MapView;
+import com.esri.core.io.UserCredentials;
 
 public class MapActivity extends Activity {
+    
+    public static final String EXTRA_PORTAL_URL = "portalUrl";
+    public static final String EXTRA_WEB_MAP_ID = "webMapId";
+    public static final String EXTRA_USER_CREDENTIALS = "userCredentials";
 
-    MapView mMapView;
+    private MapView mMapView;
 
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_map);
-
-        mMapView = new MapView(this);
-
+        
+        Bundle extras = getIntent().getExtras();
+        String portalUrl = extras.getString(EXTRA_PORTAL_URL);
+        String webMapId = extras.getString(EXTRA_WEB_MAP_ID);
+        UserCredentials userCredentials = (UserCredentials) extras.get(EXTRA_USER_CREDENTIALS);
+        
+        String webmapUrl = String.format("%s/home/item.html?id=%s", portalUrl, webMapId);
+        mMapView = new MapView(this, webmapUrl, userCredentials, null, null);
+        setContentView(mMapView);
     }
 
     @Override
