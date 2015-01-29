@@ -76,10 +76,7 @@ public class LoginActivity extends Activity {
         final String userCredsString = prefs.getString(USER_CREDENTIALS_KEY, null);
         if (null == userCredsString) {
             if (NetworkModel.isConnected(this)) {
-                setContentView(R.layout.activity_login);
-                
-                OAuthView oauthView = (OAuthView) findViewById(R.id.oauthView);
-                oauthView.setCallbackListener(new CallbackListener<UserCredentials>() {
+                OAuthView oauthView = new OAuthView(this, getString(R.string.portalUrl), getString(R.string.clientId), new CallbackListener<UserCredentials>() {
                     
                     public void onError(Throwable e) {
                         
@@ -93,6 +90,7 @@ public class LoginActivity extends Activity {
                         });
                     }
                 });
+                setContentView(oauthView);
             } else {
                 setContentView(R.layout.activity_login_disconnected);
             }
