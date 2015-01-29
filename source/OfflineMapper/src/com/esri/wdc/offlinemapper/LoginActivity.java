@@ -51,6 +51,7 @@ import com.esri.android.oauth.OAuthView;
 import com.esri.android.runtime.ArcGISRuntime;
 import com.esri.core.io.UserCredentials;
 import com.esri.core.map.CallbackListener;
+import com.esri.wdc.offlinemapper.model.NetworkModel;
 
 public class LoginActivity extends Activity {
     
@@ -66,27 +67,35 @@ public class LoginActivity extends Activity {
         doLogin();
     }
     
+    public void doLogin(View view) {
+        doLogin();
+    }
+    
     private void doLogin() {
         final SharedPreferences prefs = this.getPreferences(MODE_PRIVATE);
         final String userCredsString = prefs.getString(USER_CREDENTIALS_KEY, null);
-        if (null == userCredsString) {        
-            setContentView(R.layout.activity_login);
-            
-            OAuthView oauthView = (OAuthView) findViewById(R.id.oauthView);
-            oauthView.setCallbackListener(new CallbackListener<UserCredentials>() {
+        if (null == userCredsString) {
+            if (NetworkModel.isConnected(this)) {
+                setContentView(R.layout.activity_login);
                 
-                public void onError(Throwable e) {
+                OAuthView oauthView = (OAuthView) findViewById(R.id.oauthView);
+                oauthView.setCallbackListener(new CallbackListener<UserCredentials>() {
                     
-                }
-                
-                public void onCallback(final UserCredentials userCredentials) {
-                    runOnUiThread(new Runnable() {
-                        public void run() {
-                            doCreatePin(userCredentials, null);
-                        }
-                    });
-                }
-            });
+                    public void onError(Throwable e) {
+                        
+                    }
+                    
+                    public void onCallback(final UserCredentials userCredentials) {
+                        runOnUiThread(new Runnable() {
+                            public void run() {
+                                doCreatePin(userCredentials, null);
+                            }
+                        });
+                    }
+                });
+            } else {
+                setContentView(R.layout.activity_login_disconnected);
+            }
         } else {
             runOnUiThread(new Runnable() {
                 public void run() {
