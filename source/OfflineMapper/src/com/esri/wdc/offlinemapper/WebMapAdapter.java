@@ -18,7 +18,7 @@ package com.esri.wdc.offlinemapper;
 import java.util.HashMap;
 import java.util.List;
 
-import android.content.Context;
+import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
@@ -28,6 +28,8 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.esri.core.io.UserCredentials;
 import com.esri.core.portal.Portal;
@@ -39,109 +41,148 @@ public class WebMapAdapter extends BaseAdapter {
     
     private static final String TAG = WebMapAdapter.class.getSimpleName();
 
-    private final Context mContext;
+    private final Activity activity;
     private final Portal portal;
     private final Object resultSetLock = new Object();
-    private final HashMap<PortalItem, Bitmap> thumbnails = new HashMap<PortalItem, Bitmap>();
+    private HashMap<Integer, PortalItem> resultsByIndex = new HashMap<Integer, PortalItem>();
+    private final HashMap<String, Bitmap> thumbnailsByItemId = new HashMap<String, Bitmap>();
     
-    private PortalQueryResultSet<PortalItem> resultSet = null;
+    private int totalResultCount = 0;
 
-    public WebMapAdapter(Context c, UserCredentials userCredentials) {
-        mContext = c;
+    public WebMapAdapter(Activity activity, UserCredentials userCredentials) {
+        this.activity = activity;
         portal = new Portal("https://www.arcgis.com", userCredentials);
-        synchronized (resultSetLock) {
-            refreshItems();
-        }
+        doInitialSearch();
     }
     
-    public void refreshItems() {
-        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
+    private void doInitialSearch() {
+        AsyncTask<Void, Void, PortalQueryResultSet<PortalItem>> task = new AsyncTask<Void, Void, PortalQueryResultSet<PortalItem>>() {
 
             @Override
-            protected Void doInBackground(Void... v) {
-                PortalQueryParams params = new PortalQueryParams("owner:" + portal.getCredentials().getUserName() + " AND type:Web Map");
-                PortalQueryResultSet<PortalItem> theResultSet = null;
+            protected PortalQueryResultSet<PortalItem> doInBackground(Void... v) {
                 try {
-                    theResultSet = portal.findItems(params);
+                    PortalQueryParams params = new PortalQueryParams("owner:" + portal.getCredentials().getUserName() + " AND type:Web Map");
+                    return portal.findItems(params);
                 } catch (Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    Log.e(TAG, "Error doing initial search", e);
+                    return null;
                 }
-                synchronized (resultSetLock) {
-                    if (null != theResultSet) {
-                        resultSet = theResultSet;
-                        thumbnails.clear();
-                        List<PortalItem> items = resultSet.getResults();
-                        for (PortalItem item : items) {
-                            try {
-                                byte[] bytes = item.fetchThumbnail();
-                                Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                                Log.d(TAG, "bmp size " + bmp.getWidth() + "x" + bmp.getHeight() + " for " + item.getItemId() + " " + item.getName());
-                                thumbnails.put(item, bmp);
-                            } catch (Exception e) {
-                                Log.e(TAG, "Couldn't get thumbnail", e);
-                            }                            
-                        }
-                    }
-                }
-                return null;
             }
             
             @Override
-            protected void onPostExecute(Void result) {
+            protected void onPostExecute(PortalQueryResultSet<PortalItem> result) {
+                //This gives us 1) the total number of results and 2) the first subset of results.
+                synchronized (resultSetLock) {
+                    totalResultCount = result.getTotalResults();
+                    resultsByIndex.clear();
+                    thumbnailsByItemId.clear();
+                    List<PortalItem> results = result.getResults();
+                    for (int i = 0; i < results.size(); i++) {
+                        Log.d(TAG, "result " + i + " is " + results.get(i).getTitle());
+                        resultsByIndex.put(i, results.get(i));
+                    }
+                }
                 notifyDataSetChanged();
             }
             
         };
         task.execute(new Void[0]);
     }
+    
+    private Bitmap getThumbnail(PortalItem item) throws Exception {
+        Bitmap thumbnail;
+        synchronized (resultSetLock) {
+            thumbnail = thumbnailsByItemId.get(item.getItemId());
+        }
+        if (null == thumbnail) {
+            Log.d(TAG, "fetching thumbnail for " + item.getTitle());
+            byte[] bytes = item.fetchThumbnail();
+            Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+            synchronized (resultSetLock) {
+                thumbnailsByItemId.put(item.getItemId(), bmp);
+            }
+        }
+        return thumbnail;
+    }
 
     public int getCount() {
         synchronized (resultSetLock) {
-            if (null != resultSet) {
-                return resultSet.getTotalResults();
-            } else {
-                return 0;
-            }
+            return totalResultCount;
         }
     }
 
     public Object getItem(int position) {
-        return null;
+        synchronized (resultSetLock) {
+            return resultsByIndex.get(position);
+        }
     }
 
     public long getItemId(int position) {
-        return 0;
+        return position;
     }
 
-    // create a new ImageView for each item referenced by the Adapter
-    public View getView(int position, View convertView, ViewGroup parent) {
-        ImageView imageView;
-        if (convertView == null) {  // if it's not recycled, initialize some attributes
-            imageView = new ImageView(mContext);
+    public View getView(final int position, View convertView, ViewGroup parent) {
+        ViewGroup viewToReturn;
+        
+        if (convertView == null) {
+            LinearLayout layout = new LinearLayout(activity);
+            layout.setOrientation(LinearLayout.VERTICAL);
+            
+            ImageView imageView = new ImageView(activity) {
+                @Override
+                public void invalidate() {
+                    Log.d(TAG, "Invalidating " + position);
+                    super.invalidate();
+                }
+            };
             imageView.setLayoutParams(new GridView.LayoutParams(200, 133));
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
             imageView.setPadding(8, 8, 8, 8);
+            layout.addView(imageView);
+            
+            TextView textView = new TextView(activity);
+            layout.addView(textView);
+            
+            viewToReturn = layout;
         } else {
-            imageView = (ImageView) convertView;
+            viewToReturn = (ViewGroup) convertView;
         }
+        final ImageView imageView = (ImageView) viewToReturn.getChildAt(0);
 
         PortalItem item = null;
         synchronized (resultSetLock) {
-            if (null != resultSet) {
-                List<PortalItem> results = resultSet.getResults();
-                if (position < results.size()) {
-                    item = results.get(position);
-                }
-            }
+            item = resultsByIndex.get(position);
         }
         if (null != item) {
-            Bitmap bmp = thumbnails.get(item);
-            if (null != bmp) {
-                imageView.setImageBitmap(bmp);
-            }
+            final TextView textView = (TextView) viewToReturn.getChildAt(1);
+            final String itemName = item.getTitle();
+            activity.runOnUiThread(new Runnable() {
+                public void run() {
+                    textView.setText(itemName);
+                }
+            });
+            
+            new AsyncTask<PortalItem, Void, Bitmap>() {
+                protected Bitmap doInBackground(PortalItem... params) {
+                    try {
+                        return getThumbnail(params[0]);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Couldn't get thumbnail for item " + params[0].getItemId(), e);
+                        return null;
+                    }
+                };
+                
+                protected void onPostExecute(final Bitmap result) {
+                    activity.runOnUiThread(new Runnable() {
+                        
+                        public void run() {
+                            imageView.setImageBitmap(result);
+                        }
+                    });
+                };                
+            }.execute(new PortalItem[] { item });
         }
-        return imageView;
+        return viewToReturn;
     }
 
 }
