@@ -32,12 +32,17 @@ import android.widget.ImageView;
 import com.esri.core.io.UserCredentials;
 import com.esri.core.portal.Portal;
 import com.esri.core.portal.PortalItem;
+import com.esri.core.portal.PortalItemType;
 import com.esri.core.portal.PortalQueryParams;
 import com.esri.core.portal.PortalQueryResultSet;
 
 public class WebMapAdapter extends BaseAdapter {
     
     private static final String TAG = WebMapAdapter.class.getSimpleName();
+    /**
+     * TODO implement paging. For now, you get 100 and that's it.
+     */
+    private static final int LIMIT = 100;
 
     private final Context mContext;
     private final Portal portal;
@@ -59,13 +64,14 @@ public class WebMapAdapter extends BaseAdapter {
 
             @Override
             protected Void doInBackground(Void... v) {
-                PortalQueryParams params = new PortalQueryParams("owner:" + portal.getCredentials().getUserName() + " AND type:Web Map");
+                PortalQueryParams params = new PortalQueryParams();
+                params.setQuery(PortalItemType.WEBMAP, null, "owner:" + portal.getCredentials().getUserName() + " AND type:Web Map");
+                params.setLimit(LIMIT);
                 PortalQueryResultSet<PortalItem> theResultSet = null;
                 try {
                     theResultSet = portal.findItems(params);
                 } catch (Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    Log.e(TAG, "Couldn't find portal items", e);
                 }
                 synchronized (resultSetLock) {
                     if (null != theResultSet) {
@@ -75,8 +81,13 @@ public class WebMapAdapter extends BaseAdapter {
                         for (PortalItem item : items) {
                             try {
                                 byte[] bytes = item.fetchThumbnail();
-                                Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                                Log.d(TAG, "bmp size " + bmp.getWidth() + "x" + bmp.getHeight() + " for " + item.getItemId() + " " + item.getName());
+                                Bitmap bmp;
+                                if (null != bytes) {
+                                    bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                                    
+                                } else {
+                                    bmp = BitmapFactory.decodeResource(mContext.getResources(), R.drawable.desktopapp);
+                                }
                                 thumbnails.put(item, bmp);
                             } catch (Exception e) {
                                 Log.e(TAG, "Couldn't get thumbnail", e);
@@ -99,7 +110,8 @@ public class WebMapAdapter extends BaseAdapter {
     public int getCount() {
         synchronized (resultSetLock) {
             if (null != resultSet) {
-                return resultSet.getTotalResults();
+                int totalResults = resultSet.getTotalResults();
+                return (totalResults > LIMIT) ? LIMIT : totalResults;
             } else {
                 return 0;
             }
@@ -114,10 +126,9 @@ public class WebMapAdapter extends BaseAdapter {
         return 0;
     }
 
-    // create a new ImageView for each item referenced by the Adapter
     public View getView(int position, View convertView, ViewGroup parent) {
         ImageView imageView;
-        if (convertView == null) {  // if it's not recycled, initialize some attributes
+        if (convertView == null) {
             imageView = new ImageView(mContext);
             imageView.setLayoutParams(new GridView.LayoutParams(200, 133));
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
