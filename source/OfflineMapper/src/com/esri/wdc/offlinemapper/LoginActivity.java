@@ -172,10 +172,9 @@ public class LoginActivity extends Activity {
     }
     
     private static String fixSeed(int seed) {
-        seed *= 2;
         String seedString = Integer.toString(seed);
         while (8 > seedString.length()) {
-            seedString += "0";
+            seedString += " ";
         }
         return seedString;
     }
