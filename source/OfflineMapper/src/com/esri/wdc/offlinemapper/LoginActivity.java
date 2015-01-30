@@ -58,6 +58,7 @@ public class LoginActivity extends Activity {
     
     private static final String TAG = LoginActivity.class.getSimpleName();
     private static final String USER_CREDENTIALS_KEY = "UserCredentials";
+    private static final String PORTAL_URL_KEY = "PortalUrl";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,10 +75,19 @@ public class LoginActivity extends Activity {
     
     private void doLogin() {
         final SharedPreferences prefs = this.getPreferences(MODE_PRIVATE);
-        final String userCredsString = prefs.getString(USER_CREDENTIALS_KEY, null);
-        if (null == userCredsString) {
+        String userCredsString = prefs.getString(USER_CREDENTIALS_KEY, null);
+        String portalUrl = prefs.getString(PORTAL_URL_KEY, null);
+        if (null == portalUrl || null == userCredsString) {
+            prefs.edit()
+            .remove(PORTAL_URL_KEY)
+            .remove(USER_CREDENTIALS_KEY)
+            .commit();
+            userCredsString = null;
+            portalUrl = "https://www.arcgis.com";//TODO get from user when we support Portal
+            final String portalUrlFinal = portalUrl;
+            
             if (NetworkModel.isConnected(this)) {
-                OAuthView oauthView = new OAuthView(this, getString(R.string.portalUrl), getString(R.string.clientId), new CallbackListener<UserCredentials>() {
+                OAuthView oauthView = new OAuthView(this, portalUrl, getString(R.string.clientId), new CallbackListener<UserCredentials>() {
                     
                     public void onError(Throwable e) {
                         
@@ -86,7 +96,7 @@ public class LoginActivity extends Activity {
                     public void onCallback(final UserCredentials userCredentials) {
                         runOnUiThread(new Runnable() {
                             public void run() {
-                                doCreatePin(userCredentials, null);
+                                doCreatePin(portalUrlFinal, userCredentials, null);
                             }
                         });
                     }
@@ -96,15 +106,17 @@ public class LoginActivity extends Activity {
                 setContentView(R.layout.activity_login_disconnected);
             }
         } else {
+            final String portalUrlFinal = portalUrl;
+            final String userCredsStringFinal = userCredsString;
             runOnUiThread(new Runnable() {
                 public void run() {
-                    doEnterPin(userCredsString, null);
+                    doEnterPin(portalUrlFinal, userCredsStringFinal, null);
                 }
             });
         }
     }
     
-    private void doCreatePin(final UserCredentials userCredentials, String error) {
+    private void doCreatePin(final String portalUrl, final UserCredentials userCredentials, String error) {
         setContentView(R.layout.activity_login_pin);
         final EditText editText = (EditText) findViewById(R.id.editText_pin);
         if (null != error) {
@@ -126,12 +138,13 @@ public class LoginActivity extends Activity {
                             String enc = encryptIt(userCredentials, Integer.parseInt(firstPin));
                             SharedPreferences prefs = LoginActivity.this.getPreferences(MODE_PRIVATE);
                             prefs.edit()
-                                .putString(USER_CREDENTIALS_KEY, enc)
-                                .commit();
+                            .putString(PORTAL_URL_KEY, portalUrl)
+                            .putString(USER_CREDENTIALS_KEY, enc)
+                            .commit();
                             
-                                startMapChooserActivity(userCredentials);
+                            startMapChooserActivity(portalUrl, userCredentials);
                         } else {
-                            doCreatePin(userCredentials, getString(R.string.error_pin_mismatch));
+                            doCreatePin(portalUrl, userCredentials, getString(R.string.error_pin_mismatch));
                         }
                     }
                 });
@@ -140,7 +153,7 @@ public class LoginActivity extends Activity {
         editText.requestFocus();
     }
     
-    private void doEnterPin(final String encryptedCredentials, String error) {
+    private void doEnterPin(final String portalUrl, final String encryptedCredentials, String error) {
         setContentView(R.layout.activity_login_pin);
         final EditText editText = (EditText) findViewById(R.id.editText_pin);
         if (null != error) {
@@ -152,26 +165,29 @@ public class LoginActivity extends Activity {
             public void onClick(View v) {
                 try {
                     UserCredentials userCredentials = (UserCredentials) decryptIt(encryptedCredentials, Integer.parseInt(editText.getText().toString()));
-                    startMapChooserActivity(userCredentials);
+                    startMapChooserActivity(portalUrl, userCredentials);
                 } catch (Throwable t) {
                     editText.setText("");
-                    doEnterPin(encryptedCredentials, "Incorrect PIN");
+                    doEnterPin(portalUrl, encryptedCredentials, "Incorrect PIN");
                 }
             }
         });
     }
     
-    private void startMapChooserActivity(UserCredentials userCredentials) {
+    private void startMapChooserActivity(String portalUrl, UserCredentials userCredentials) {
         Intent mapDownloadServiceIntent = new Intent(this, MapDownloadService.class);
         startService(mapDownloadServiceIntent);
         
         Intent i = new Intent(getApplicationContext(), MapChooserActivity.class);
         i.putExtra(MapChooserActivity.EXTRA_USER_CREDENTIALS, userCredentials);
+        i.putExtra(MapChooserActivity.EXTRA_PORTAL_URL, portalUrl);
         startActivity(i);
     }
     
     public void logout(View view) {
-        getPreferences(MODE_PRIVATE).edit().remove(USER_CREDENTIALS_KEY).commit();
+        getPreferences(MODE_PRIVATE).edit()
+        .remove(PORTAL_URL_KEY)
+        .remove(USER_CREDENTIALS_KEY).commit();
         doLogin();
     }
     

@@ -53,9 +53,9 @@ public class WebMapAdapter extends BaseAdapter {
     
     private PortalQueryResultSet<PortalItem> resultSet = null;
 
-    public WebMapAdapter(Activity activity, UserCredentials userCredentials) {
+    public WebMapAdapter(Activity activity, String portalUrl, UserCredentials userCredentials) {
         this.activity = activity;
-        portal = new Portal("https://www.arcgis.com", userCredentials);
+        portal = new Portal(portalUrl, userCredentials);
         synchronized (resultSetLock) {
             refreshItems();
         }

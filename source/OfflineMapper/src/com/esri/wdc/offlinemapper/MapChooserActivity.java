@@ -31,6 +31,7 @@ import com.esri.core.portal.PortalItem;
 public class MapChooserActivity extends Activity {
     
     public static final String EXTRA_USER_CREDENTIALS = "userCredentials";
+    public static final String EXTRA_PORTAL_URL = "portalUrl";
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,8 +41,9 @@ public class MapChooserActivity extends Activity {
         Object credsObject = getIntent().getExtras().get(EXTRA_USER_CREDENTIALS);
         if (credsObject instanceof UserCredentials) {
             final UserCredentials userCredentials = (UserCredentials) credsObject;
+            String portalUrl = getIntent().getExtras().getString(EXTRA_PORTAL_URL);
             GridView gridview = (GridView) findViewById(R.id.gridview);
-            final WebMapAdapter adapter = new WebMapAdapter(this, userCredentials);
+            final WebMapAdapter adapter = new WebMapAdapter(this, portalUrl, userCredentials);
             gridview.setAdapter(adapter);
 
             gridview.setOnItemClickListener(new OnItemClickListener() {

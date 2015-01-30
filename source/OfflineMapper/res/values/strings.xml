@@ -2,7 +2,6 @@
 <resources>
     
     <string name="clientId">rTGckDwBc4ANyuMS</string>
-    <string name="portalUrl">https://www.arcgis.com</string>
     
     <string name="app_name">Offline Mapper</string>
     <string name="title_activity_map_chooser">Map Chooser</string>
