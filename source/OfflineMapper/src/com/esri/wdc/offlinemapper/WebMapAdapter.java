@@ -44,7 +44,7 @@ public class WebMapAdapter extends BaseAdapter {
     /**
      * TODO implement paging. For now, you get 100 and that's it.
      */
-    private static final int LIMIT = 100;
+    public static final int LIMIT = 100;
 
     private final Activity activity;
     private final Portal portal;

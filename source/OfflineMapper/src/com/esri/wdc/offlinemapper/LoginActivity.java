@@ -176,6 +176,8 @@ public class LoginActivity extends Activity {
     
     private void startMapChooserActivity(String portalUrl, UserCredentials userCredentials) {
         Intent mapDownloadServiceIntent = new Intent(this, MapDownloadService.class);
+        mapDownloadServiceIntent.putExtra(MapDownloadService.EXTRA_USER_CREDENTIALS, userCredentials);
+        mapDownloadServiceIntent.putExtra(MapDownloadService.EXTRA_PORTAL_URL, portalUrl);
         startService(mapDownloadServiceIntent);
         
         Intent i = new Intent(getApplicationContext(), MapChooserActivity.class);
@@ -185,6 +187,7 @@ public class LoginActivity extends Activity {
     }
     
     public void logout(View view) {
+        stopService(new Intent(getApplicationContext(), MapChooserActivity.class));
         getPreferences(MODE_PRIVATE).edit()
         .remove(PORTAL_URL_KEY)
         .remove(USER_CREDENTIALS_KEY).commit();
