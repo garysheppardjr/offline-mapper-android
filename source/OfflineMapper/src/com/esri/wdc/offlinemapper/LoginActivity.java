@@ -51,6 +51,7 @@ import com.esri.android.oauth.OAuthView;
 import com.esri.android.runtime.ArcGISRuntime;
 import com.esri.core.io.UserCredentials;
 import com.esri.core.map.CallbackListener;
+import com.esri.wdc.offlinemapper.controller.MapDownloadService;
 import com.esri.wdc.offlinemapper.model.NetworkModel;
 
 public class LoginActivity extends Activity {
@@ -161,6 +162,9 @@ public class LoginActivity extends Activity {
     }
     
     private void startMapChooserActivity(UserCredentials userCredentials) {
+        Intent mapDownloadServiceIntent = new Intent(this, MapDownloadService.class);
+        startService(mapDownloadServiceIntent);
+        
         Intent i = new Intent(getApplicationContext(), MapChooserActivity.class);
         i.putExtra(MapChooserActivity.EXTRA_USER_CREDENTIALS, userCredentials);
         startActivity(i);
