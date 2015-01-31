@@ -67,7 +67,7 @@ public class WebMapAdapter extends BaseAdapter {
             @Override
             protected Void doInBackground(Void... v) {
                 PortalQueryParams params = new PortalQueryParams();
-                params.setQuery(PortalItemType.WEBMAP, null, "owner:" + portal.getCredentials().getUserName() + " AND type:Web Map");
+                params.setQuery(PortalItemType.WEBMAP, null, "owner:" + portal.getCredentials().getUserName() + " AND type:\"Web Map\"");
                 params.setLimit(LIMIT);
                 PortalQueryResultSet<PortalItem> theResultSet = null;
                 try {
