@@ -187,7 +187,7 @@ public class LoginActivity extends Activity {
     }
     
     public void logout(View view) {
-        stopService(new Intent(getApplicationContext(), MapChooserActivity.class));
+        stopService(new Intent(getApplicationContext(), MapDownloadService.class));
         getPreferences(MODE_PRIVATE).edit()
         .remove(PORTAL_URL_KEY)
         .remove(USER_CREDENTIALS_KEY).commit();
