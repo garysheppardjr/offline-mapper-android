@@ -15,12 +15,12 @@
  ******************************************************************************/
 package com.esri.wdc.offlinemapper.controller;
 
-import java.util.Date;
 import java.util.List;
 
-import android.app.IntentService;
+import android.app.Service;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 
 import com.esri.core.io.UserCredentials;
@@ -31,26 +31,25 @@ import com.esri.core.portal.PortalQueryParams;
 import com.esri.core.portal.PortalQueryResultSet;
 import com.esri.wdc.offlinemapper.WebMapAdapter;
 
-public class MapDownloadService extends IntentService {
+public class MapDownloadService extends Service {
     
     private static final String TAG = MapDownloadService.class.getSimpleName();
     
     public static final String EXTRA_USER_CREDENTIALS = "UserCredentials";
     public static final String EXTRA_PORTAL_URL = "PortalUrl";
-
-    public MapDownloadService() {
-        super(MapDownloadService.class.getSimpleName());
-    }
+    
+    private boolean keepRunning = true;
 
     @Override
-    protected void onHandleIntent(Intent intent) {
-        Log.d(TAG, "Start MapDownloadService at " + new Date());
-        while (true) {
-            Bundle extras = intent.getExtras();
-            UserCredentials userCredentials = (UserCredentials) extras.get(EXTRA_USER_CREDENTIALS); 
-            String portalUrl = extras.getString(EXTRA_PORTAL_URL);
-            Portal portal = new Portal(portalUrl, userCredentials);
-            PortalQueryParams params = new PortalQueryParams();
+    public IBinder onBind(Intent intent) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+    
+    private void runServiceLoop(String portalUrl, UserCredentials userCredentials) {
+        while (keepRunning) {
+            final Portal portal = new Portal(portalUrl, userCredentials);
+            final PortalQueryParams params = new PortalQueryParams();
             params.setQuery(PortalItemType.WEBMAP, null, "owner:" + userCredentials.getUserName() + " AND type:Web Map");
             params.setLimit(WebMapAdapter.LIMIT);
             PortalQueryResultSet<PortalItem> theResultSet = null;
@@ -65,14 +64,34 @@ public class MapDownloadService extends IntentService {
                     Log.d(TAG, "TODO store " + item.getType() + " item " + item.getTitle());
                 }
             }
-            
-            synchronized (this) {
+            if (keepRunning) {
                 try {
-                    wait(5000);
-                } catch (Exception e) {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    Log.e(TAG, "Couldn't sleep", e);
                 }
             }
         }
+    }
+    
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Bundle extras = intent.getExtras();
+        final UserCredentials userCredentials = (UserCredentials) extras.get(EXTRA_USER_CREDENTIALS); 
+        final String portalUrl = extras.getString(EXTRA_PORTAL_URL);
+        
+        new Thread() {
+            public void run() {
+                runServiceLoop(portalUrl, userCredentials);
+            };
+        }.start();
+        
+        return START_STICKY;
+    }
+    
+    @Override
+    public void onDestroy() {
+        keepRunning = false;
     }
 
 }
