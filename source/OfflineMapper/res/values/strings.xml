@@ -5,7 +5,7 @@
     
     <string name="app_name">Offline Mapper</string>
     <string name="title_activity_map_chooser">Map Chooser</string>
-    <string name="action_settings">Settings</string>
+    <string name="action_connectionIndicator">Connection Indicator</string>
     <string name="title_activity_login">Login</string>
     <string name="username">Username</string>
     <string name="password">Password</string>

@@ -22,9 +22,13 @@ import android.net.NetworkInfo;
 public class NetworkModel {
     
     public static boolean isConnected(Context context) {
-        ConnectivityManager connManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connManager.getActiveNetworkInfo();
+        NetworkInfo networkInfo = getActiveNetworkInfo(context);
         return null != networkInfo && networkInfo.isConnected();
+    }
+    
+    public static NetworkInfo getActiveNetworkInfo(Context context) {
+        ConnectivityManager connManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        return connManager.getActiveNetworkInfo();
     }
 
 }
