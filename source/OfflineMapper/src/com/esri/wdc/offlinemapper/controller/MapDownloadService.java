@@ -52,7 +52,6 @@ public class MapDownloadService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -86,35 +85,34 @@ public class MapDownloadService extends Service {
                             SpatialReference sr = (null != layer.getSpatialRefs() && 0 < layer.getSpatialRefs().size()) ? layer.getSpatialRefs().get(0) : SpatialReference.create(SpatialReference.WKID_WGS84_WEB_MERCATOR_AUXILIARY_SPHERE_10);
                             final Object continueLock = new Object();
                             ExportTileCacheParameters exportParams = new ExportTileCacheParameters(false, 0, 0, webmap.getInitExtent(), sr);
-                            exportTask.generateTileCache(exportParams,
-                                    new CallbackListener<ExportTileCacheStatus>() {
+                            exportTask.generateTileCache(exportParams, new CallbackListener<ExportTileCacheStatus>() {
                                         
-                                        public void onError(Throwable e) {
-                                            Log.e(TAG, "Couldn't do status", e);
-                                        }
-                                        
-                                        public void onCallback(ExportTileCacheStatus objs) {
-                                            Log.d(TAG, objs.getStatus() + ": " + objs.getTotalBytesDownloaded() + "/" + objs.getDownloadSize());
-                                        }
-                                    },
-                                    new CallbackListener<String>() {
-                                        
-                                        private boolean errored = false;
-        
-                                        public void onError(Throwable e) {
-                                            errored = true;
-                                            Log.e(TAG, "Couldn't generate tile cache", e);
-                                            continueLock.notify();
-                                        }
-        
-                                        public void onCallback(String path) {
-                                            if (!errored) {
-                                                Log.d(TAG, "Returned without error: " + path);
-                                            }
-                                            continueLock.notify();
-                                        }
-                                    },
-                                    new File(getExternalCacheDir(), PATH).getAbsolutePath());
+                                public void onError(Throwable e) {
+                                    Log.e(TAG, "Couldn't do status", e);
+                                }
+                                
+                                public void onCallback(ExportTileCacheStatus objs) {
+                                    Log.d(TAG, objs.getStatus() + ": " + objs.getTotalBytesDownloaded() + "/" + objs.getDownloadSize());
+                                }
+                            },
+                            new CallbackListener<String>() {
+                                
+                                private boolean errored = false;
+
+                                public void onError(Throwable e) {
+                                    errored = true;
+                                    Log.e(TAG, "Couldn't generate tile cache", e);
+                                    continueLock.notify();
+                                }
+
+                                public void onCallback(String path) {
+                                    if (!errored) {
+                                        Log.d(TAG, "Returned without error: " + path);
+                                    }
+                                    continueLock.notify();
+                                }
+                            },
+                            new File(getExternalCacheDir(), PATH).getAbsolutePath());
                             continueLock.wait();
                         }
                     } catch (Exception e) {
