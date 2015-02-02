@@ -21,13 +21,13 @@
         android:icon="@drawable/maps"
         android:label="@string/app_name" >
         <activity
-            android:name=".MapActivity">
+            android:name=".view.MapActivity">
         </activity>
         <activity
-            android:name=".MapChooserActivity">
+            android:name=".view.MapChooserActivity">
         </activity>
         <activity
-            android:name=".LoginActivity">
+            android:name=".view.LoginActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

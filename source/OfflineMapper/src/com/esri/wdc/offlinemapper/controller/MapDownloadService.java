@@ -38,7 +38,7 @@ import com.esri.core.portal.WebMapLayer;
 import com.esri.core.tasks.tilecache.ExportTileCacheParameters;
 import com.esri.core.tasks.tilecache.ExportTileCacheStatus;
 import com.esri.core.tasks.tilecache.ExportTileCacheTask;
-import com.esri.wdc.offlinemapper.WebMapAdapter;
+import com.esri.wdc.offlinemapper.view.WebMapAdapter;
 
 public class MapDownloadService extends Service {
 
