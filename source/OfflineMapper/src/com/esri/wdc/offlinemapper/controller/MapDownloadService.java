@@ -61,7 +61,7 @@ public class MapDownloadService extends Service {
         while (keepRunning) {
             final Portal portal = new Portal(portalUrl, userCredentials);
             final PortalQueryParams params = new PortalQueryParams();
-            params.setQuery(PortalItemType.WEBMAP, null, "owner:" + userCredentials.getUserName() + " AND type:\"Web Map\"");
+            params.setQuery(PortalItemType.WEBMAP, null, WebMapAdapter.getWebMapQuery(userCredentials.getUserName()));
             params.setLimit(WebMapAdapter.LIMIT);
             PortalQueryResultSet<PortalItem> theResultSet = null;
             try {

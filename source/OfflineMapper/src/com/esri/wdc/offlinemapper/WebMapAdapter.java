@@ -53,6 +53,14 @@ public class WebMapAdapter extends BaseAdapter {
     
     private PortalQueryResultSet<PortalItem> resultSet = null;
 
+    public static final String getWebMapQuery(String ownerUsername) {
+        StringBuilder sb = new StringBuilder("type:\"Web Map\" AND tags:offline-mapper");
+        if (null != ownerUsername) {
+            sb.append(" AND owner:").append(ownerUsername);
+        }
+        return sb.toString();
+    }
+
     public WebMapAdapter(Activity activity, String portalUrl, UserCredentials userCredentials) {
         this.activity = activity;
         portal = new Portal(portalUrl, userCredentials);
@@ -67,7 +75,7 @@ public class WebMapAdapter extends BaseAdapter {
             @Override
             protected Void doInBackground(Void... v) {
                 PortalQueryParams params = new PortalQueryParams();
-                params.setQuery(PortalItemType.WEBMAP, null, "owner:" + portal.getCredentials().getUserName() + " AND type:\"Web Map\"");
+                params.setQuery(PortalItemType.WEBMAP, null, getWebMapQuery(portal.getCredentials().getUserName()));
                 params.setLimit(LIMIT);
                 PortalQueryResultSet<PortalItem> theResultSet = null;
                 try {
