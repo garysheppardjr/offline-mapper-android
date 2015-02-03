@@ -20,7 +20,9 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.esri.android.map.LocationDisplayManager;
 import com.esri.android.map.MapView;
+import com.esri.android.map.event.OnStatusChangedListener;
 import com.esri.core.io.UserCredentials;
 import com.esri.wdc.offlinemapper.R;
 
@@ -31,6 +33,7 @@ public class MapActivity extends Activity {
     public static final String EXTRA_USER_CREDENTIALS = "userCredentials";
 
     private MapView mMapView;
+    private LocationDisplayManager ldm = null;
 
     /** Called when the activity is first created. */
     @Override
@@ -45,6 +48,16 @@ public class MapActivity extends Activity {
         String webmapUrl = String.format("%s/home/item.html?id=%s", portalUrl, webMapId);
         mMapView = new MapView(this, webmapUrl, userCredentials, null, null);
         setContentView(mMapView);
+        
+        mMapView.setOnStatusChangedListener(new OnStatusChangedListener() {
+            
+            public void onStatusChanged(Object source, STATUS status) {
+                if (STATUS.INITIALIZED.equals(status)) {
+                    ldm = mMapView.getLocationDisplayManager();
+                    ldm.start();
+                }
+            }
+        });
     }
 
     @Override
