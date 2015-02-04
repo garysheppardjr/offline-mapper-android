@@ -3,15 +3,31 @@
     tools:context="com.esri.wdc.offlinemapper.MapActivity" >
 
     <item
-        android:id="@+id/action_connectedIcon"
+        android:id="@+id/action_1"
         android:orderInCategory="1"
+        android:title="1"
+        android:showAsAction="always" />
+    <item
+        android:id="@+id/action_2"
+        android:orderInCategory="2"
+        android:title="2"
+        android:showAsAction="always" />
+    <item
+        android:id="@+id/action_3"
+        android:orderInCategory="3"
+        android:title="3"
+        android:showAsAction="always" />
+    <item
+        android:id="@+id/action_visibility"
+        android:orderInCategory="4"
+        android:title="@string/visibility"
+        android:showAsAction="always"
+        android:actionViewClass="com.esri.wdc.offlinemapper.view.ViewshedButtonLinearLayout" />
+    <item
+        android:id="@+id/action_connectedIcon"
+        android:orderInCategory="5"
         android:showAsAction="always"
         android:title="@string/action_connectionIndicator"
         android:actionViewClass="com.esri.wdc.offlinemapper.view.ConnectionIndicatorView" />
-    <item
-        android:id="@+id/action_visibility"
-        android:title="@string/visibility"
-        android:showAsAction="ifRoom|withText"
-        android:actionViewClass="com.esri.wdc.offlinemapper.view.ViewshedButtonLinearLayout" />
-
+        
 </menu>

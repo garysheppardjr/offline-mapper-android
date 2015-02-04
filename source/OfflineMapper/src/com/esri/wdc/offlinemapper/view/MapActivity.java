@@ -18,10 +18,13 @@ package com.esri.wdc.offlinemapper.view;
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.Menu;
+import android.view.MenuItem;
 
 import com.esri.android.map.LocationDisplayManager;
 import com.esri.android.map.MapView;
 import com.esri.android.map.event.OnStatusChangedListener;
+import com.esri.core.geometry.GeometryEngine;
+import com.esri.core.geometry.Point;
 import com.esri.core.io.UserCredentials;
 import com.esri.wdc.offlinemapper.R;
 
@@ -84,6 +87,27 @@ public class MapActivity extends Activity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.map, menu);
         return true;
+    }
+    
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+        case R.id.action_1:
+            Point pt = GeometryEngine.project(-64.59, 10.184, mMapView.getSpatialReference());
+            mMapView.zoomToScale(pt, 36112);
+            break;
+            
+        case R.id.action_2:
+            pt = GeometryEngine.project(-64.681, 10.187, mMapView.getSpatialReference());
+            mMapView.zoomToScale(pt, 144448);
+            break;
+            
+        case R.id.action_3:
+            pt = GeometryEngine.project(-64.637, 10.153, mMapView.getSpatialReference());
+            mMapView.zoomToScale(pt, 72224);
+            break;            
+        }
+        return super.onOptionsItemSelected(item);
     }
 
 }
