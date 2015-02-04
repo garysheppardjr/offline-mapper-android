@@ -3,9 +3,12 @@ package com.esri.wdc.offlinemapper.view;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.os.Environment;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -15,6 +18,8 @@ import android.widget.ToggleButton;
 import com.esri.android.map.MapView;
 import com.esri.android.map.RasterLayer;
 import com.esri.core.raster.FileRasterSource;
+import com.esri.core.renderer.Colormap;
+import com.esri.core.renderer.ColormapRenderer;
 
 /**
  * A button to toggle the viewshed. This class also computes and displays the viewshed.
@@ -26,30 +31,44 @@ public class ViewshedToggleButton extends ToggleButton {
     private static final String TAG = ViewshedToggleButton.class.getSimpleName();
     
     private final HashMap<String, RasterLayer> viewshedLayers = new HashMap<String, RasterLayer>();
+    private final ColormapRenderer viewshedColormapRenderer;
     
-    private RasterLayer viewshedLayer = null; 
+    private boolean addedViewshedLayers = false;
 
     public ViewshedToggleButton(Context context) {
         super(context);
         setupOnCheckedChangeListener();
+        viewshedColormapRenderer = createViewshedColormapRenderer();
+        setupPrebuiltRasterLayers();
     }
 
     public ViewshedToggleButton(Context context, AttributeSet attrs) {
         super(context, attrs);
         setupOnCheckedChangeListener();
+        viewshedColormapRenderer = createViewshedColormapRenderer();
+        setupPrebuiltRasterLayers();
     }
 
     public ViewshedToggleButton(Context context, AttributeSet attrs,
             int defStyle) {
         super(context, attrs, defStyle);
         setupOnCheckedChangeListener();
+        viewshedColormapRenderer = createViewshedColormapRenderer();
+        setupPrebuiltRasterLayers();
     }
     
-    private void setupOnCheckedChangeListener() {
-        this.setOnCheckedChangeListener(new OnCheckedChangeListener() {
-            
-            //Workaround: display canned rasters
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+    private ColormapRenderer createViewshedColormapRenderer() {
+        ArrayList<Colormap.UniqueValue> values = new ArrayList<Colormap.UniqueValue>();
+        values.add(new Colormap.UniqueValue(0, Color.TRANSPARENT, "Not Visible"));
+        values.add(new Colormap.UniqueValue(1, Color.GREEN, "Visible"));
+        Colormap colormap = new Colormap(values);
+        return new ColormapRenderer(colormap);
+    }
+    
+    private void setupPrebuiltRasterLayers() {
+        new Thread() {
+            @Override
+            public void run() {
                 final MapView mapView = ((MapActivity) getContext()).getMapView();
                 File dataDir = new File(Environment.getExternalStorageDirectory(), "data");
                 if (!dataDir.exists()) {
@@ -69,19 +88,39 @@ public class ViewshedToggleButton extends ToggleButton {
                         if (viewshedFile.exists()) {
                             try {
                                 FileRasterSource source = new FileRasterSource(viewshedFile.getAbsolutePath());
-                                source.project(mapView.getSpatialReference());
+                                source.project(mapView.getSpatialReference());//Required if source has a different SR than mapView
                                 viewshedLayer = new RasterLayer(source);
-                                mapView.addLayer(viewshedLayer);
+                                viewshedLayer.setName(tif);
+                                viewshedLayer.setOpacity(0.5f);
+                                viewshedLayer.setRenderer(viewshedColormapRenderer);
+                                viewshedLayer.setVisible(false);
                                 viewshedLayers.put(tif, viewshedLayer);
                             } catch (FileNotFoundException e) {
                                 Log.d(TAG, "Couldn't find raster file", e);
                             }
                         }
-                    }
-                    if (null != viewshedLayer) {
-                        viewshedLayer.setVisible(isChecked());
-                    }                    
+                    }              
                 }
+            }
+        }.start();
+    }
+    
+    private void setupOnCheckedChangeListener() {
+        this.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+            
+            //Workaround: display pre-built rasters
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                final MapView mapView = addedViewshedLayers ? null : ((MapActivity) getContext()).getMapView();
+                Iterator<String> layerNameIterator = viewshedLayers.keySet().iterator();
+                while (layerNameIterator.hasNext()) {
+                    String layerName = layerNameIterator.next();
+                    RasterLayer layer = viewshedLayers.get(layerName);
+                    layer.setVisible(isChecked());
+                    if (!addedViewshedLayers) {
+                        mapView.addLayer(layer);
+                    }
+                }
+                addedViewshedLayers = true;
             }
         });
             
