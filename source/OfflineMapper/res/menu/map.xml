@@ -12,6 +12,6 @@
         android:id="@+id/action_visibility"
         android:title="@string/visibility"
         android:showAsAction="ifRoom|withText"
-        android:actionViewClass="com.esri.wdc.offlinemapper.view.ViewshedToggleButton" />
+        android:actionViewClass="com.esri.wdc.offlinemapper.view.ViewshedButtonLinearLayout" />
 
 </menu>
