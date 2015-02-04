@@ -18,7 +18,6 @@ package com.esri.wdc.offlinemapper.view;
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.Menu;
-import android.view.MenuItem;
 
 import com.esri.android.map.LocationDisplayManager;
 import com.esri.android.map.MapView;
@@ -59,6 +58,10 @@ public class MapActivity extends Activity {
             }
         });
     }
+    
+    public MapView getMapView() {
+        return mMapView;
+    }
 
     @Override
     protected void onDestroy() {
@@ -82,15 +85,5 @@ public class MapActivity extends Activity {
         getMenuInflater().inflate(R.menu.map, menu);
         return true;
     }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-//        if (id == R.id.action_settings) {
-//            return true;
-//        }
-        return super.onOptionsItemSelected(item);
-    }
-
 
 }

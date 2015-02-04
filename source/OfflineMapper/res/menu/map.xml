@@ -8,5 +8,10 @@
         android:showAsAction="always"
         android:title="@string/action_connectionIndicator"
         android:actionViewClass="com.esri.wdc.offlinemapper.view.ConnectionIndicatorView" />
+    <item
+        android:id="@+id/action_visibility"
+        android:title="@string/visibility"
+        android:showAsAction="ifRoom|withText"
+        android:actionViewClass="com.esri.wdc.offlinemapper.view.ViewshedToggleButton" />
 
 </menu>

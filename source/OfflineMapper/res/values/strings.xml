@@ -19,5 +19,6 @@
     <string name="logout">Logout</string>
     <string name="disconnectedTitle">Give us something to work with here.</string>
     <string name="disconnectedDetails">We don\'t have your login info saved, so we don\'t have any maps saved yet. Try again later when you\'re connected.</string>
+    <string name="visibility">Visibility</string>
     
 </resources>
