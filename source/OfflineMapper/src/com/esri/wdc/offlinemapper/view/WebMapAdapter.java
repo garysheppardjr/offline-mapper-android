@@ -23,8 +23,10 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewGroup.LayoutParams;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
@@ -36,6 +38,7 @@ import com.esri.core.portal.Portal;
 import com.esri.core.portal.PortalItem;
 import com.esri.core.portal.PortalItemType;
 import com.esri.core.portal.PortalQueryParams;
+import com.esri.core.portal.PortalQueryParams.PortalQuerySortOrder;
 import com.esri.core.portal.PortalQueryResultSet;
 import com.esri.wdc.offlinemapper.R;
 
@@ -54,12 +57,17 @@ public class WebMapAdapter extends BaseAdapter {
     
     private PortalQueryResultSet<PortalItem> resultSet = null;
 
-    public static final String getWebMapQuery(String ownerUsername) {
+    public static final PortalQueryParams getWebMapQueryParams(String ownerUsername) {
+        PortalQueryParams params = new PortalQueryParams();
         StringBuilder sb = new StringBuilder("type:\"Web Map\" AND tags:offline-mapper");
         if (null != ownerUsername) {
             sb.append(" AND owner:").append(ownerUsername);
         }
-        return sb.toString();
+        params.setQuery(PortalItemType.WEBMAP, null, sb.toString());
+        params.setLimit(LIMIT);
+        params.setSortField("numComments");
+        params.setSortOrder(PortalQuerySortOrder.DESCENDING);
+        return params;
     }
 
     public WebMapAdapter(Activity activity, String portalUrl, UserCredentials userCredentials) {
@@ -75,9 +83,7 @@ public class WebMapAdapter extends BaseAdapter {
 
             @Override
             protected Void doInBackground(Void... v) {
-                PortalQueryParams params = new PortalQueryParams();
-                params.setQuery(PortalItemType.WEBMAP, null, getWebMapQuery(portal.getCredentials().getUserName()));
-                params.setLimit(LIMIT);
+                PortalQueryParams params = getWebMapQueryParams(portal.getCredentials().getUserName());
                 PortalQueryResultSet<PortalItem> theResultSet = null;
                 try {
                     theResultSet = portal.findItems(params);
@@ -148,13 +154,15 @@ public class WebMapAdapter extends BaseAdapter {
             layout.setOrientation(LinearLayout.VERTICAL);
             
             imageView = new ImageView(activity);
-            imageView.setLayoutParams(new GridView.LayoutParams(200, 133));
+            imageView.setLayoutParams(new GridView.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL));
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
             imageView.setPadding(8, 8, 8, 8);
             layout.addView(imageView);
             
             textView = new TextView(activity);
             textView.setTextColor(0xffffffff);
+            textView.setTextSize(24f);
+            textView.setGravity(Gravity.CENTER_HORIZONTAL);
             layout.addView(textView);
         } else {
             layout = (LinearLayout) convertView;

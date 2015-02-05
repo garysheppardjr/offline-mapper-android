@@ -30,7 +30,6 @@ import com.esri.core.map.CallbackListener;
 import com.esri.core.portal.BaseMap;
 import com.esri.core.portal.Portal;
 import com.esri.core.portal.PortalItem;
-import com.esri.core.portal.PortalItemType;
 import com.esri.core.portal.PortalQueryParams;
 import com.esri.core.portal.PortalQueryResultSet;
 import com.esri.core.portal.WebMap;
@@ -59,9 +58,7 @@ public class MapDownloadService extends Service {
             UserCredentials userCredentials) {
         while (keepRunning) {
             final Portal portal = new Portal(portalUrl, userCredentials);
-            final PortalQueryParams params = new PortalQueryParams();
-            params.setQuery(PortalItemType.WEBMAP, null, WebMapAdapter.getWebMapQuery(userCredentials.getUserName()));
-            params.setLimit(WebMapAdapter.LIMIT);
+            final PortalQueryParams params = WebMapAdapter.getWebMapQueryParams(userCredentials.getUserName());
             PortalQueryResultSet<PortalItem> theResultSet = null;
             try {
                 theResultSet = portal.findItems(params);
