@@ -4,6 +4,9 @@
     <string name="clientId">rTGckDwBc4ANyuMS</string>
     
     <string name="app_name">Mayday</string>
+    <string name="label_map_activity">Map</string>
+    <string name="label_map_chooser_activity">Choose a Map</string>
+    <string name="label_login_activity">Login</string>
     <string name="title_activity_map_chooser">Map Chooser</string>
     <string name="action_connectionIndicator">Connection Indicator</string>
     <string name="title_activity_login">Login</string>

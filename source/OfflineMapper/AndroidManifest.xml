@@ -22,14 +22,17 @@
         android:label="@string/app_name">
         <activity
             android:name=".view.MapActivity"
+            android:label="@string/label_map_activity"
             android:configChanges="keyboardHidden|orientation|screenSize">
         </activity>
         <activity
             android:name=".view.MapChooserActivity"
+            android:label="@string/label_map_chooser_activity"
             android:configChanges="keyboardHidden|orientation|screenSize">
         </activity>
         <activity
             android:name=".view.LoginActivity"
+            android:label="@string/label_login_activity"
             android:configChanges="keyboardHidden|orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
