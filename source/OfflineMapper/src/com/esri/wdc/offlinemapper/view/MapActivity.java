@@ -22,11 +22,13 @@ import android.view.MenuItem;
 
 import com.esri.android.map.LocationDisplayManager;
 import com.esri.android.map.MapView;
+import com.esri.android.map.event.OnSingleTapListener;
 import com.esri.android.map.event.OnStatusChangedListener;
 import com.esri.core.geometry.GeometryEngine;
 import com.esri.core.geometry.Point;
 import com.esri.core.io.UserCredentials;
 import com.esri.wdc.offlinemapper.R;
+import com.esri.wdc.offlinemapper.controller.IdentifyListener;
 
 public class MapActivity extends Activity {
     
@@ -36,6 +38,7 @@ public class MapActivity extends Activity {
 
     private MapView mMapView;
     private LocationDisplayManager ldm = null;
+    private IdentifyListener identifyListener = null;
 
     /** Called when the activity is first created. */
     @Override
@@ -45,7 +48,7 @@ public class MapActivity extends Activity {
         Bundle extras = getIntent().getExtras();
         String portalUrl = extras.getString(EXTRA_PORTAL_URL);
         String webMapId = extras.getString(EXTRA_WEB_MAP_ID);
-        UserCredentials userCredentials = (UserCredentials) extras.get(EXTRA_USER_CREDENTIALS);
+        final UserCredentials userCredentials = (UserCredentials) extras.get(EXTRA_USER_CREDENTIALS);
         
         String webmapUrl = String.format("%s/home/item.html?id=%s", portalUrl, webMapId);
         mMapView = new MapView(this, webmapUrl, userCredentials, null, null);
@@ -57,6 +60,9 @@ public class MapActivity extends Activity {
                 if (STATUS.INITIALIZED.equals(status)) {
                     ldm = mMapView.getLocationDisplayManager();
                     ldm.start();
+                    
+                    identifyListener = new IdentifyListener(mMapView, userCredentials);
+                    mMapView.setOnSingleTapListener(identifyListener);
                 }
             }
         });
