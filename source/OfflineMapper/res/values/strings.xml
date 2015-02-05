@@ -3,7 +3,7 @@
     
     <string name="clientId">rTGckDwBc4ANyuMS</string>
     
-    <string name="app_name">Offline Mapper</string>
+    <string name="app_name">Mayday</string>
     <string name="title_activity_map_chooser">Map Chooser</string>
     <string name="action_connectionIndicator">Connection Indicator</string>
     <string name="title_activity_login">Login</string>

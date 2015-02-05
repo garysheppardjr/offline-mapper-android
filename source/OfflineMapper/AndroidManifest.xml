@@ -18,7 +18,7 @@
         android:required="true" />
 
     <application
-        android:icon="@drawable/maps"
+        android:icon="@drawable/maps_airplane"
         android:label="@string/app_name" >
         <activity
             android:name=".view.MapActivity">
