@@ -15,6 +15,9 @@ import android.util.Log;
 import android.widget.CompoundButton;
 import android.widget.ToggleButton;
 
+import com.esri.android.map.FeatureLayer;
+import com.esri.android.map.GraphicsLayer;
+import com.esri.android.map.Layer;
 import com.esri.android.map.MapView;
 import com.esri.android.map.RasterLayer;
 import com.esri.core.raster.FileRasterSource;
@@ -60,7 +63,7 @@ public class ViewshedToggleButton extends ToggleButton {
     private ColormapRenderer createViewshedColormapRenderer() {
         ArrayList<Colormap.UniqueValue> values = new ArrayList<Colormap.UniqueValue>();
         values.add(new Colormap.UniqueValue(0, Color.TRANSPARENT, "Not Visible"));
-        values.add(new Colormap.UniqueValue(1, Color.GREEN, "Visible"));
+        values.add(new Colormap.UniqueValue(1, Color.RED, "Visible"));
         Colormap colormap = new Colormap(values);
         return new ColormapRenderer(colormap);
     }
@@ -117,7 +120,14 @@ public class ViewshedToggleButton extends ToggleButton {
                     RasterLayer layer = viewshedLayers.get(layerName);
                     layer.setVisible(isChecked());
                     if (!addedViewshedLayers) {
-                        mapView.addLayer(layer);
+                        Layer[] layers = mapView.getLayers();
+                        int index = -1;
+                        while (layers.length > ++index) {
+                            if ((layers[index] instanceof FeatureLayer) || (layers[index] instanceof GraphicsLayer)) {
+                                break;
+                            }
+                        }
+                        mapView.addLayer(layer, index);
                     }
                 }
                 addedViewshedLayers = true;
