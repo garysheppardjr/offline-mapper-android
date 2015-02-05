@@ -155,7 +155,6 @@ public class WebMapAdapter extends BaseAdapter {
             
             imageView = new ImageView(activity);
             imageView.setLayoutParams(new GridView.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL));
-            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
             imageView.setPadding(8, 8, 8, 8);
             layout.addView(imageView);
             
