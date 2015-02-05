@@ -3,6 +3,11 @@
     tools:context="com.esri.wdc.offlinemapper.MapActivity" >
 
     <item
+        android:id="@+id/action_0"
+        android:orderInCategory="0"
+        android:title="Steps:"
+        android:showAsAction="always" />
+    <item
         android:id="@+id/action_1"
         android:orderInCategory="1"
         android:title="1"
@@ -20,7 +25,7 @@
     <item
         android:id="@+id/action_visibility"
         android:orderInCategory="4"
-        android:title="@string/visibility"
+        android:title="4"
         android:showAsAction="always"
         android:actionViewClass="com.esri.wdc.offlinemapper.view.ViewshedButtonLinearLayout" />
     <item
