@@ -21,6 +21,7 @@ public class DbWebmap {
     private String itemId;
     private long userId;
     private byte[] thumbnail;
+    private String title;
 
     public long getRowId() {
         return rowId;
@@ -52,6 +53,14 @@ public class DbWebmap {
 
     public void setThumbnail(byte[] thumbnail) {
         this.thumbnail = thumbnail;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
     }
 
 }

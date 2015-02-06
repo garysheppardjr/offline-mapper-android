@@ -127,7 +127,7 @@ public class WebMapAdapter extends BaseAdapter {
         
         DbWebmap webmap = getWebmap(position);
         if (null != webmap) {
-            textView.setText(webmap.getItemId());
+            textView.setText(webmap.getTitle());
             Bitmap bmp;
             if (null != webmap.getThumbnail()) {
                 bmp = BitmapFactory.decodeByteArray(webmap.getThumbnail(), 0, webmap.getThumbnail().length);

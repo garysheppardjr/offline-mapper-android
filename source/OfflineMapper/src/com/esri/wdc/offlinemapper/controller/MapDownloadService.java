@@ -70,11 +70,10 @@ public class MapDownloadService extends Service {
             if (null != theResultSet) {
                 List<PortalItem> items = theResultSet.getResults();
                 for (PortalItem item : items) {
-                    Log.d(TAG, "TODO store " + item.getType() + " item " + item.getTitle());
                     try {
                         WebMap webmap = WebMap.newInstance(item);
                         byte[] thumbnailBytes = item.fetchThumbnail();
-                        long webmapId = db.insertWebmap(item.getItemId(), userId, thumbnailBytes);
+                        long webmapId = db.insertWebmap(item.getItemId(), userId, thumbnailBytes, item.getTitle());
                         if (0 > webmapId) {
                             webmapId = db.getWebmapId(item.getItemId());
                         }

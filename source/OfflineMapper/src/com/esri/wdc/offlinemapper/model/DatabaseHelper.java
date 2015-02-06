@@ -27,7 +27,7 @@ import android.util.Log;
 public class DatabaseHelper extends SQLiteOpenHelper {
     
     private static final String TAG = DatabaseHelper.class.getSimpleName();
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
     private static final String DATABASE_NAME = "database_helper_db";
     
     private static DatabaseHelper instance = null;
@@ -117,6 +117,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL(sbCreate.toString());
             
             break;
+            
+        case 2:
+            db.execSQL("ALTER TABLE webmap ADD title TEXT");
+            break;
         }
     }
     
@@ -201,11 +205,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
-    public long insertWebmap(String itemId, long userId, byte[] thumbnail) {
+    public long insertWebmap(String itemId, long userId, byte[] thumbnail, String title) {
         ContentValues values = new ContentValues();
         values.put("item_id", itemId);
         values.put("user_id", userId);
         values.put("thumbnail", thumbnail);
+        values.put("title", title);
         SQLiteDatabase db = getWritableDatabase();
         try {
             long rowid = db.insert("webmap", null, values);
@@ -229,13 +234,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     
     public DbWebmap getWebmap(long webmapId) {
         SQLiteDatabase db = getReadableDatabase();
-        Cursor cursor = db.query("webmap", new String[] { "item_id", "user_id", "thumbnail" }, "rowid = ?", new String[] { Long.toString(webmapId) }, null, null, null);
+        Cursor cursor = db.query("webmap", new String[] { "item_id", "user_id", "thumbnail", "title" }, "rowid = ?", new String[] { Long.toString(webmapId) }, null, null, null);
         if (cursor.moveToFirst()) {
             DbWebmap webmap = new DbWebmap();
             webmap.setRowId(webmapId);
             webmap.setItemId(cursor.getString(0));
             webmap.setUserId(cursor.getLong(1));
             webmap.setThumbnail(cursor.getBlob(2));
+            webmap.setTitle(cursor.getString(3));
             return webmap;
         } else {
             return null;
