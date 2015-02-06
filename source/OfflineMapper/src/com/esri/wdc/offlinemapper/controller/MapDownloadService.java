@@ -15,7 +15,6 @@
  ******************************************************************************/
 package com.esri.wdc.offlinemapper.controller;
 
-import java.io.File;
 import java.util.List;
 
 import android.app.Service;
@@ -24,9 +23,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 
-import com.esri.core.geometry.SpatialReference;
 import com.esri.core.io.UserCredentials;
-import com.esri.core.map.CallbackListener;
 import com.esri.core.portal.BaseMap;
 import com.esri.core.portal.Portal;
 import com.esri.core.portal.PortalItem;
@@ -34,9 +31,7 @@ import com.esri.core.portal.PortalQueryParams;
 import com.esri.core.portal.PortalQueryResultSet;
 import com.esri.core.portal.WebMap;
 import com.esri.core.portal.WebMapLayer;
-import com.esri.core.tasks.tilecache.ExportTileCacheParameters;
-import com.esri.core.tasks.tilecache.ExportTileCacheStatus;
-import com.esri.core.tasks.tilecache.ExportTileCacheTask;
+import com.esri.wdc.offlinemapper.model.DatabaseHelper;
 import com.esri.wdc.offlinemapper.view.WebMapAdapter;
 
 public class MapDownloadService extends Service {
@@ -58,6 +53,13 @@ public class MapDownloadService extends Service {
             UserCredentials userCredentials) {
         while (keepRunning) {
             final Portal portal = new Portal(portalUrl, userCredentials);
+            
+            DatabaseHelper db = DatabaseHelper.getInstance(getApplicationContext());
+            long userId = db.insertUser(userCredentials.getUserName(), portalUrl);
+            if (0 > userId) {
+                userId = db.getUserId(userCredentials.getUserName(), portalUrl);
+            }
+            
             final PortalQueryParams params = WebMapAdapter.getWebMapQueryParams(userCredentials.getUserName());
             PortalQueryResultSet<PortalItem> theResultSet = null;
             try {
@@ -71,46 +73,20 @@ public class MapDownloadService extends Service {
                     Log.d(TAG, "TODO store " + item.getType() + " item " + item.getTitle());
                     try {
                         WebMap webmap = WebMap.newInstance(item);
+                        byte[] thumbnailBytes = item.fetchThumbnail();
+                        long webmapId = db.insertWebmap(item.getItemId(), userId, thumbnailBytes);
+                        if (0 > webmapId) {
+                            webmapId = db.getWebmapId(item.getItemId());
+                        }
                         BaseMap basemap = webmap.getBaseMap();
                         Log.d(TAG, "basemap is called " + basemap.getTitle());
                         List<WebMapLayer> basemapLayers = basemap.getBaseMapLayers();
-//                        DatabaseHelper db = DatabaseHelper.getInstance(getApplicationContext());
                         for (int i = 0; i < basemapLayers.size(); i++) {
                             WebMapLayer layer = basemapLayers.get(i);
-                            Log.d(TAG, "layer is " + layer.getTitle() + " " + layer.getUrl());
-                            ExportTileCacheTask exportTask = new ExportTileCacheTask(layer.getUrl(), userCredentials);
-                            SpatialReference sr = (null != layer.getSpatialRefs() && 0 < layer.getSpatialRefs().size()) ? layer.getSpatialRefs().get(0) : SpatialReference.create(SpatialReference.WKID_WGS84_WEB_MERCATOR_AUXILIARY_SPHERE_10);
-                            final Object continueLock = new Object();
-                            ExportTileCacheParameters exportParams = new ExportTileCacheParameters(false, 0, 0, webmap.getInitExtent(), sr);
-                            exportTask.generateTileCache(exportParams, new CallbackListener<ExportTileCacheStatus>() {
-                                        
-                                public void onError(Throwable e) {
-                                    Log.e(TAG, "Couldn't do status", e);
-                                }
-                                
-                                public void onCallback(ExportTileCacheStatus objs) {
-                                    Log.d(TAG, objs.getStatus() + ": " + objs.getTotalBytesDownloaded() + "/" + objs.getDownloadSize());
-                                }
-                            },
-                            new CallbackListener<String>() {
-                                
-                                private boolean errored = false;
-
-                                public void onError(Throwable e) {
-                                    errored = true;
-                                    Log.e(TAG, "Couldn't generate tile cache", e);
-                                    continueLock.notify();
-                                }
-
-                                public void onCallback(String path) {
-                                    if (!errored) {
-                                        Log.d(TAG, "Returned without error: " + path);
-                                    }
-                                    continueLock.notify();
-                                }
-                            },
-                            new File(getExternalCacheDir(), PATH).getAbsolutePath());
-                            continueLock.wait();
+                            long basemapLayerId = db.insertBasemapLayer(layer.getUrl());
+                            if (0 > basemapLayerId) {
+                                basemapLayerId = db.getBasemapLayerId(layer.getUrl());
+                            }
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "Couldn't read returned web map", e);
@@ -138,6 +114,7 @@ public class MapDownloadService extends Service {
 
         new Thread() {
             public void run() {
+                keepRunning = true;
                 runServiceLoop(portalUrl, userCredentials);
             };
         }.start();

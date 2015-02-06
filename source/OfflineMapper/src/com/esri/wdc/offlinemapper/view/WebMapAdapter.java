@@ -15,14 +15,9 @@
  ******************************************************************************/
 package com.esri.wdc.offlinemapper.view;
 
-import java.util.HashMap;
-import java.util.List;
-
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -35,12 +30,13 @@ import android.widget.TextView;
 
 import com.esri.core.io.UserCredentials;
 import com.esri.core.portal.Portal;
-import com.esri.core.portal.PortalItem;
 import com.esri.core.portal.PortalItemType;
 import com.esri.core.portal.PortalQueryParams;
 import com.esri.core.portal.PortalQueryParams.PortalQuerySortOrder;
-import com.esri.core.portal.PortalQueryResultSet;
 import com.esri.wdc.offlinemapper.R;
+import com.esri.wdc.offlinemapper.model.DatabaseHelper;
+import com.esri.wdc.offlinemapper.model.DatabaseListener;
+import com.esri.wdc.offlinemapper.model.DbWebmap;
 
 public class WebMapAdapter extends BaseAdapter {
     
@@ -52,10 +48,6 @@ public class WebMapAdapter extends BaseAdapter {
 
     private final Activity activity;
     private final Portal portal;
-    private final Object resultSetLock = new Object();
-    private final HashMap<PortalItem, Bitmap> thumbnails = new HashMap<PortalItem, Bitmap>();
-    
-    private PortalQueryResultSet<PortalItem> resultSet = null;
 
     public static final PortalQueryParams getWebMapQueryParams(String ownerUsername) {
         PortalQueryParams params = new PortalQueryParams();
@@ -73,76 +65,40 @@ public class WebMapAdapter extends BaseAdapter {
     public WebMapAdapter(Activity activity, String portalUrl, UserCredentials userCredentials) {
         this.activity = activity;
         portal = new Portal(portalUrl, userCredentials);
-        synchronized (resultSetLock) {
-            refreshItems();
-        }
-    }
-    
-    public void refreshItems() {
-        AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
-
-            @Override
-            protected Void doInBackground(Void... v) {
-                PortalQueryParams params = getWebMapQueryParams(portal.getCredentials().getUserName());
-                PortalQueryResultSet<PortalItem> theResultSet = null;
-                try {
-                    theResultSet = portal.findItems(params);
-                } catch (Exception e) {
-                    Log.e(TAG, "Couldn't find portal items", e);
-                }
-                synchronized (resultSetLock) {
-                    if (null != theResultSet) {
-                        resultSet = theResultSet;
-                        thumbnails.clear();
-                        List<PortalItem> items = resultSet.getResults();
-                        for (PortalItem item : items) {
-                            try {
-                                byte[] bytes = item.fetchThumbnail();
-                                Bitmap bmp;
-                                if (null != bytes) {
-                                    bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                                    
-                                } else {
-                                    bmp = BitmapFactory.decodeResource(activity.getResources(), R.drawable.desktopapp);
-                                }
-                                thumbnails.put(item, bmp);
-                            } catch (Exception e) {
-                                Log.e(TAG, "Couldn't get thumbnail", e);
-                            }                            
-                        }
+        
+        DatabaseHelper.getInstance(activity).addListener(new DatabaseListener() {
+            
+            public void onChangeRows() {
+                WebMapAdapter.this.activity.runOnUiThread(new Runnable() {
+                    public void run() {
+                        notifyDataSetChanged();
                     }
-                }
-                return null;
+                });
             }
-            
-            @Override
-            protected void onPostExecute(Void result) {
-                notifyDataSetChanged();
-            }
-            
-        };
-        task.execute(new Void[0]);
+        });
     }
 
     public int getCount() {
-        synchronized (resultSetLock) {
-            if (null != resultSet) {
-                int totalResults = resultSet.getTotalResults();
-                return (totalResults > LIMIT) ? LIMIT : totalResults;
-            } else {
-                return 0;
-            }
-        }
+        DatabaseHelper db = DatabaseHelper.getInstance(activity);
+        return db.getWebmapIds(db.getUserId(portal.getCredentials().getUserName(), portal.getUrl())).length;
     }
 
     public Object getItem(int position) {
-        synchronized (resultSetLock) {
-            return resultSet.getResults().get(position);
-        }
+        return getWebmap(position);
     }
 
     public long getItemId(int position) {
         return position;
+    }
+    
+    private DbWebmap getWebmap(int position) {
+        DatabaseHelper db = DatabaseHelper.getInstance(activity);
+        long[] webmapIds = db.getWebmapIds(db.getUserId(portal.getCredentials().getUserName(), portal.getUrl()));
+        if (position < webmapIds.length) {
+            return db.getWebmap(webmapIds[position]);
+        } else {
+            return null;
+        }
     }
 
     public View getView(int position, View convertView, ViewGroup parent) {
@@ -168,22 +124,18 @@ public class WebMapAdapter extends BaseAdapter {
             imageView = (ImageView) layout.getChildAt(0);
             textView = (TextView) layout.getChildAt(1);
         }
-
-        PortalItem item = null;
-        synchronized (resultSetLock) {
-            if (null != resultSet) {
-                List<PortalItem> results = resultSet.getResults();
-                if (position < results.size()) {
-                    item = results.get(position);
-                }
+        
+        DbWebmap webmap = getWebmap(position);
+        if (null != webmap) {
+            textView.setText(webmap.getItemId());
+            Bitmap bmp;
+            if (null != webmap.getThumbnail()) {
+                bmp = BitmapFactory.decodeByteArray(webmap.getThumbnail(), 0, webmap.getThumbnail().length);
+              
+            } else {
+                bmp = BitmapFactory.decodeResource(activity.getResources(), R.drawable.desktopapp);
             }
-        }
-        if (null != item) {
-            textView.setText(item.getTitle());
-            Bitmap bmp = thumbnails.get(item);
-            if (null != bmp) {
-                imageView.setImageBitmap(bmp);
-            }
+            imageView.setImageBitmap(bmp);
         }
         return layout;
     }
