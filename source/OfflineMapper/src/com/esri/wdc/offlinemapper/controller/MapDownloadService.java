@@ -124,6 +124,9 @@ public class MapDownloadService extends Service {
                     Log.e(TAG, "Couldn't sleep", e);
                 }
             }
+            
+            //TODO make this loop to update maps; for now, set to false to do a one-time download and stop
+            keepRunning = false;
         }
     }
 
