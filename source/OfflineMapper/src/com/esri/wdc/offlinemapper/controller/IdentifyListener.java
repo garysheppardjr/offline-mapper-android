@@ -16,8 +16,11 @@
 package com.esri.wdc.offlinemapper.controller;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.GridLayout;
 import android.widget.TextView;
 
 import com.esri.android.map.Callout;
@@ -84,23 +87,49 @@ public class IdentifyListener implements OnSingleTapListener {
         
         Callout callout = mapView.getCallout();
         if (null != result) {
-            callout.show(Geometry.Type.POINT.equals(result.getGeometry().getType()) ? (Point) result.getGeometry() : identifyPoint, loadView(result));
+            Object symbolName = result.getAttributeValue("SymbolName");
+            if (null == symbolName) {
+                symbolName = "";
+            }
+            Object id = result.getAttributeValue("OBJECTID");
+            if (null == id) {
+                id = "";
+            }
+            callout.show(
+                    Geometry.Type.POINT.equals(result.getGeometry().getType()) ? (Point) result.getGeometry() : identifyPoint,
+                    loadView(result, symbolName.toString() + " " + id.toString(), new String[] { }));
         } else {
             callout.hide();
         }
     }
     
-    private View loadView(Graphic result) {
-        View view = inflater.inflate(R.layout.identify, null);
-        StringBuffer sb = new StringBuffer();
-        String sep = "";
+    private View loadView(Graphic result, String title, String[] fieldsToShow) {
+        GridLayout grid = (GridLayout) inflater.inflate(R.layout.identify, null);
         String[] keys = result.getAttributeNames();
-        for (String key : keys) {
-            sb.append(sep).append(key).append(": ").append(result.getAttributeValue(key));
-            sep = "\n";
+        grid.setRowCount(keys.length + (null == title ? 0 : 1));
+        if (null != title) {
+            TextView text = new TextView(grid.getContext());
+            text.setText(title);
+            text.setTextColor(Color.BLACK);
+            text.setTypeface(Typeface.DEFAULT_BOLD);
+            text.setTextSize(24);
+            GridLayout.LayoutParams layoutParams = new GridLayout.LayoutParams();
+            layoutParams.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1);
+            layoutParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 2);
+            text.setLayoutParams(layoutParams);
+            grid.addView(text);
         }
-        ((TextView) view.findViewById(R.id.textView_identifyText)).setText(sb.toString());
-        return view;
+        for (String key : fieldsToShow) {
+            TextView text = new TextView(grid.getContext());
+            text.setText(key);
+            grid.addView(text);
+            text = new TextView(grid.getContext());
+            text.setTypeface(Typeface.DEFAULT_BOLD);
+            Object value = result.getAttributeValue(key);
+            text.setText(null == value ? "" : value.toString());
+            grid.addView(text);
+        }
+        return grid;
     }
 
 }
