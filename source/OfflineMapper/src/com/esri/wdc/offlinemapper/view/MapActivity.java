@@ -15,22 +15,34 @@
  ******************************************************************************/
 package com.esri.wdc.offlinemapper.view;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.List;
+
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.esri.android.map.FeatureLayer;
 import com.esri.android.map.LocationDisplayManager;
 import com.esri.android.map.MapView;
-import com.esri.android.map.event.OnSingleTapListener;
+import com.esri.android.map.ags.ArcGISLocalTiledLayer;
 import com.esri.android.map.event.OnStatusChangedListener;
+import com.esri.core.geodatabase.Geodatabase;
+import com.esri.core.geodatabase.GeodatabaseFeatureTable;
 import com.esri.core.geometry.GeometryEngine;
 import com.esri.core.geometry.Point;
 import com.esri.core.io.UserCredentials;
 import com.esri.wdc.offlinemapper.R;
 import com.esri.wdc.offlinemapper.controller.IdentifyListener;
+import com.esri.wdc.offlinemapper.model.NetworkModel;
 
 public class MapActivity extends Activity {
+    
+    private static final String TAG = MapActivity.class.getSimpleName();
     
     public static final String EXTRA_PORTAL_URL = "portalUrl";
     public static final String EXTRA_WEB_MAP_ID = "webMapId";
@@ -39,6 +51,20 @@ public class MapActivity extends Activity {
     private MapView mMapView;
     private LocationDisplayManager ldm = null;
     private IdentifyListener identifyListener = null;
+    private UserCredentials userCredentials = null;
+    
+    private OnStatusChangedListener onStatusChangedListenerDefault = new OnStatusChangedListener() {
+        
+        public void onStatusChanged(Object source, STATUS status) {
+            if (STATUS.INITIALIZED.equals(status)) {
+                ldm = mMapView.getLocationDisplayManager();
+                ldm.start();
+                
+                identifyListener = new IdentifyListener(mMapView, userCredentials);
+                mMapView.setOnSingleTapListener(identifyListener);
+            }
+        }
+    };
 
     /** Called when the activity is first created. */
     @Override
@@ -49,23 +75,47 @@ public class MapActivity extends Activity {
         String portalUrl = extras.getString(EXTRA_PORTAL_URL);
         String webMapId = extras.getString(EXTRA_WEB_MAP_ID);
         final UserCredentials userCredentials = (UserCredentials) extras.get(EXTRA_USER_CREDENTIALS);
+        this.userCredentials = userCredentials;
         
-        String webmapUrl = String.format("%s/home/item.html?id=%s", portalUrl, webMapId);
-        mMapView = new MapView(this, webmapUrl, userCredentials, null, null);
-        setContentView(mMapView);
-        
-        mMapView.setOnStatusChangedListener(new OnStatusChangedListener() {
-            
-            public void onStatusChanged(Object source, STATUS status) {
-                if (STATUS.INITIALIZED.equals(status)) {
-                    ldm = mMapView.getLocationDisplayManager();
-                    ldm.start();
-                    
-                    identifyListener = new IdentifyListener(mMapView, userCredentials);
-                    mMapView.setOnSingleTapListener(identifyListener);
-                }
+        if (NetworkModel.isConnected(this)) {
+            String webmapUrl = String.format("%s/home/item.html?id=%s", portalUrl, webMapId);
+            mMapView = new MapView(this, webmapUrl, userCredentials, null, null);
+            mMapView.setOnStatusChangedListener(onStatusChangedListenerDefault);
+        } else {
+            File theDataDir = new File(Environment.getExternalStorageDirectory(), "data");
+            if (!theDataDir.exists()) {
+                theDataDir = new File("/storage/extSdCard", "data");
             }
-        });
+            final File dataDir = theDataDir;
+            
+            mMapView = new MapView(this);
+            mMapView.setOnStatusChangedListener(new OnStatusChangedListener() {
+                
+                public void onStatusChanged(Object source, STATUS status) {
+                    if (STATUS.INITIALIZED.equals(status)) {
+                        try {
+                            Geodatabase gdb = new Geodatabase(new File(dataDir, "plan.geodatabase").getAbsolutePath(), true);
+                            if (null != gdb) {
+                                List<GeodatabaseFeatureTable> tables = gdb.getGeodatabaseTables();
+                                for (GeodatabaseFeatureTable table : tables) {
+                                    if (table.hasGeometry()) {
+                                        mMapView.addLayer(new FeatureLayer(table));
+                                    }
+                                }
+                            }
+                        } catch (FileNotFoundException e) {
+                            Log.e(TAG, "Couldn't load local Runtime geodatabase", e);
+                        }
+                        
+                        mMapView.setOnStatusChangedListener(onStatusChangedListenerDefault);
+                    }
+                }
+            });
+            
+            ArcGISLocalTiledLayer basemapLayer = new ArcGISLocalTiledLayer(new File(dataDir, "basemap.tpk").getAbsolutePath());
+            mMapView.addLayer(basemapLayer);
+        }
+        setContentView(mMapView);
     }
     
     public MapView getMapView() {
