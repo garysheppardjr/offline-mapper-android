@@ -24,6 +24,7 @@ import android.widget.GridLayout;
 import android.widget.TextView;
 
 import com.esri.android.map.Callout;
+import com.esri.android.map.FeatureLayer;
 import com.esri.android.map.GraphicsLayer;
 import com.esri.android.map.Layer;
 import com.esri.android.map.MapView;
@@ -32,7 +33,7 @@ import com.esri.core.geometry.Envelope;
 import com.esri.core.geometry.Geometry;
 import com.esri.core.geometry.Point;
 import com.esri.core.io.UserCredentials;
-import com.esri.core.map.Graphic;
+import com.esri.core.map.Feature;
 import com.esri.core.tasks.identify.IdentifyParameters;
 import com.esri.wdc.offlinemapper.R;
 
@@ -70,15 +71,22 @@ public class IdentifyListener implements OnSingleTapListener {
         mapView.getExtent().queryEnvelope(env);
         params.setMapExtent(env);
 
-        Graphic result = null;
+        Feature result = null;
         Layer[] layers = mapView.getLayers();
         for (int i = layers.length - 1; i >= 0; i--) {
             Layer layer = layers[i];
             if (layer instanceof GraphicsLayer) {
                 GraphicsLayer graphicsLayer = (GraphicsLayer) layer;
-                int graphicIds[] = graphicsLayer.getGraphicIDs(x, y, TOLERANCE, 1);
+                int[] graphicIds = graphicsLayer.getGraphicIDs(x, y, TOLERANCE, 1);
                 if (0 < graphicIds.length) {
                     result = graphicsLayer.getGraphic(graphicIds[0]);
+                    break;
+                }
+            } else if (layer instanceof FeatureLayer) {
+                FeatureLayer featureLayer = (FeatureLayer) layer;
+                long[] featureIds = featureLayer.getFeatureIDs(x, y, TOLERANCE, 1);
+                if (0 < featureIds.length) {
+                    result = featureLayer.getFeature(featureIds[0]);
                     break;
                 }
             }
@@ -103,10 +111,9 @@ public class IdentifyListener implements OnSingleTapListener {
         }
     }
     
-    private View loadView(Graphic result, String title, String[] fieldsToShow) {
+    private View loadView(Feature result, String title, String[] fieldsToShow) {
         GridLayout grid = (GridLayout) inflater.inflate(R.layout.identify, null);
-        String[] keys = result.getAttributeNames();
-        grid.setRowCount(keys.length + (null == title ? 0 : 1));
+        grid.setRowCount(result.getAttributes().size() + (null == title ? 0 : 1));
         if (null != title) {
             TextView text = new TextView(grid.getContext());
             text.setText(title);
