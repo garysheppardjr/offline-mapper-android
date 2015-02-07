@@ -161,12 +161,12 @@ public class MapActivity extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
         case R.id.action_1:
-            Point pt = GeometryEngine.project(-64.59, 10.184, mMapView.getSpatialReference());
-            mMapView.zoomToScale(pt, 36112);
+            Point pt = GeometryEngine.project(-64.479, 10.165, mMapView.getSpatialReference());
+            mMapView.zoomToScale(pt, 72224);
             break;
             
         case R.id.action_2:
-            pt = GeometryEngine.project(-64.681, 10.187, mMapView.getSpatialReference());
+            pt = GeometryEngine.project(-64.57, 10.148, mMapView.getSpatialReference());
             mMapView.zoomToScale(pt, 144448);
             break;
             
