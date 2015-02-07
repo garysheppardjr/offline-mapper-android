@@ -42,8 +42,20 @@ public class MapDownloadService extends Service {
 
     public static final String EXTRA_USER_CREDENTIALS = "UserCredentials";
     public static final String EXTRA_PORTAL_URL = "PortalUrl";
-
+    
     private boolean keepRunning = true;
+    
+    //TODO mapsDone and totalMaps should be obtained through the service. This is the quick and dirty way.
+    private static int mapsDone = 0;
+    private static int totalMaps = 0;
+
+    public static int getMapsDone() {
+        return mapsDone;
+    }
+    
+    public static int getTotalMaps() {
+        return totalMaps;
+    }
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -71,6 +83,7 @@ public class MapDownloadService extends Service {
                 }
                 if (null != theResultSet) {
                     List<PortalItem> items = theResultSet.getResults();
+                    totalMaps = items.size();
                     for (PortalItem item : items) {
                         try {
                             WebMap webmap = WebMap.newInstance(item);
@@ -91,6 +104,8 @@ public class MapDownloadService extends Service {
                             }
                         } catch (Exception e) {
                             Log.e(TAG, "Couldn't read returned web map", e);
+                        } finally {
+                            mapsDone++;
                         }
                     }
                 }
@@ -110,6 +125,8 @@ public class MapDownloadService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        mapsDone = 0;
+        totalMaps = 0;
         if (null != intent) {
             Bundle extras = intent.getExtras();
             final UserCredentials userCredentials = (UserCredentials) extras.get(EXTRA_USER_CREDENTIALS);

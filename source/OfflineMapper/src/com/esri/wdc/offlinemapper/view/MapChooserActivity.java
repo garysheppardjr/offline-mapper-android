@@ -29,6 +29,7 @@ import android.widget.GridView;
 
 import com.esri.core.io.UserCredentials;
 import com.esri.wdc.offlinemapper.R;
+import com.esri.wdc.offlinemapper.controller.MapDownloadService;
 import com.esri.wdc.offlinemapper.model.DatabaseHelper;
 import com.esri.wdc.offlinemapper.model.DbWebmap;
 
@@ -46,6 +47,34 @@ public class MapChooserActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map_chooser);
+        
+        new Thread() {
+            private boolean keepRunning = true;
+            public void run() {
+                while (keepRunning) {
+                    final int totalMaps = MapDownloadService.getTotalMaps();
+                    final int mapsDone = MapDownloadService.getMapsDone();
+                    if (0 < totalMaps) {
+                        runOnUiThread(new Runnable() {
+                            public void run() {
+                                if (totalMaps == mapsDone) {
+                                    setTitle(R.string.label_map_chooser_activity);
+                                    keepRunning = false;
+                                } else {
+                                    setTitle("Downloaded " + mapsDone + " of " + totalMaps + " maps...");
+                                }
+                            }
+                        });
+                    }
+                    
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                        
+                    }
+                }
+            };
+        }.start();
         
         Object credsObject = getIntent().getExtras().get(EXTRA_USER_CREDENTIALS);
         if (credsObject instanceof UserCredentials) {
