@@ -107,17 +107,21 @@ public class MapDownloadService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Bundle extras = intent.getExtras();
-        final UserCredentials userCredentials = (UserCredentials) extras.get(EXTRA_USER_CREDENTIALS);
-        final String portalUrl = extras.getString(EXTRA_PORTAL_URL);
-
-        new Thread() {
-            public void run() {
-                keepRunning = true;
-                runServiceLoop(portalUrl, userCredentials);
-            };
-        }.start();
-
+        if (null != intent) {
+            Bundle extras = intent.getExtras();
+            final UserCredentials userCredentials = (UserCredentials) extras.get(EXTRA_USER_CREDENTIALS);
+            final String portalUrl = extras.getString(EXTRA_PORTAL_URL);
+    
+            new Thread() {
+                public void run() {
+                    keepRunning = true;
+                    runServiceLoop(portalUrl, userCredentials);
+                };
+            }.start();
+        } else {
+            Log.d(TAG, "onStartCommand called with null intent");
+        }
+    
         return START_STICKY;
     }
 
