@@ -85,15 +85,24 @@ public class MapDownloadService extends Service {
                     List<PortalItem> items = theResultSet.getResults();
                     totalMaps = items.size();
                     for (PortalItem item : items) {
+                        long startItem = System.currentTimeMillis();
                         try {
                             WebMap webmap = WebMap.newInstance(item);
                             byte[] thumbnailBytes = item.fetchThumbnail();
+                            {
+                                //TODO ugly demo hack! Remove after demo
+                                long endItem = System.currentTimeMillis();
+                                try {
+                                    Thread.sleep(5L * (endItem - startItem));
+                                } catch (InterruptedException e) {
+                                    
+                                }
+                            }
                             long webmapId = db.insertWebmap(item.getItemId(), userId, thumbnailBytes, item.getTitle(), webmap.getInitExtent());
                             if (0 > webmapId) {
                                 webmapId = db.getWebmapId(item.getItemId());
                             }
                             BaseMap basemap = webmap.getBaseMap();
-                            Log.d(TAG, "basemap is called " + basemap.getTitle());
                             List<WebMapLayer> basemapLayers = basemap.getBaseMapLayers();
                             for (int i = 0; i < basemapLayers.size(); i++) {
                                 WebMapLayer layer = basemapLayers.get(i);
