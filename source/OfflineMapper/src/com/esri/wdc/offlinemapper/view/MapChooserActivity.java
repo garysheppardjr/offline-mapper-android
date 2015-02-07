@@ -62,8 +62,8 @@ public class MapChooserActivity extends Activity {
                     DbWebmap webmap = (DbWebmap) adapter.getItem(position);
                     Intent intent = new Intent(MapChooserActivity.this.getApplicationContext(), MapActivity.class);
                     intent.putExtra(MapActivity.EXTRA_PORTAL_URL, adapter.getPortal().getUrl());
-                    intent.putExtra(MapActivity.EXTRA_WEB_MAP_ID, webmap.getItemId());
                     intent.putExtra(MapActivity.EXTRA_USER_CREDENTIALS, userCredentials);
+                    intent.putExtra(MapActivity.EXTRA_WEB_MAP, webmap);
                     startActivity(intent);
                 }
             });

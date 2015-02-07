@@ -35,9 +35,11 @@ import com.esri.core.geodatabase.Geodatabase;
 import com.esri.core.geodatabase.GeodatabaseFeatureTable;
 import com.esri.core.geometry.GeometryEngine;
 import com.esri.core.geometry.Point;
+import com.esri.core.geometry.SpatialReference;
 import com.esri.core.io.UserCredentials;
 import com.esri.wdc.offlinemapper.R;
 import com.esri.wdc.offlinemapper.controller.IdentifyListener;
+import com.esri.wdc.offlinemapper.model.DbWebmap;
 import com.esri.wdc.offlinemapper.model.NetworkModel;
 
 public class MapActivity extends Activity {
@@ -45,15 +47,15 @@ public class MapActivity extends Activity {
     private static final String TAG = MapActivity.class.getSimpleName();
     
     public static final String EXTRA_PORTAL_URL = "portalUrl";
-    public static final String EXTRA_WEB_MAP_ID = "webMapId";
     public static final String EXTRA_USER_CREDENTIALS = "userCredentials";
+    public static final String EXTRA_WEB_MAP = "webMap";
 
     private MapView mMapView;
     private LocationDisplayManager ldm = null;
     private IdentifyListener identifyListener = null;
     private UserCredentials userCredentials = null;
     
-    private void runAfterMapInitialized() {
+    private void runAfterMapInitialized(DbWebmap webmap) {
         ldm = mMapView.getLocationDisplayManager();
         ldm.start();
         
@@ -61,6 +63,13 @@ public class MapActivity extends Activity {
         mMapView.setOnSingleTapListener(identifyListener);
         
         mMapView.setOnStatusChangedListener(null);
+        
+        if (null != webmap && null != webmap.getInitExtent()) {
+            mMapView.setExtent(GeometryEngine.project(
+                    webmap.getInitExtent(),
+                    SpatialReference.create(SpatialReference.WKID_WGS84),
+                    mMapView.getSpatialReference()));
+        }
     }
 
     /** Called when the activity is first created. */
@@ -70,17 +79,17 @@ public class MapActivity extends Activity {
         
         Bundle extras = getIntent().getExtras();
         String portalUrl = extras.getString(EXTRA_PORTAL_URL);
-        String webMapId = extras.getString(EXTRA_WEB_MAP_ID);
+        final DbWebmap webmap = (DbWebmap) extras.get(EXTRA_WEB_MAP);
         final UserCredentials userCredentials = (UserCredentials) extras.get(EXTRA_USER_CREDENTIALS);
         this.userCredentials = userCredentials;
         
         if (NetworkModel.isConnected(this)) {
-            String webmapUrl = String.format("%s/home/item.html?id=%s", portalUrl, webMapId);
+            String webmapUrl = String.format("%s/home/item.html?id=%s", portalUrl, webmap.getItemId());
             mMapView = new MapView(this, webmapUrl, userCredentials, null, null);
             mMapView.setOnStatusChangedListener(new OnStatusChangedListener() {
                 public void onStatusChanged(Object source, STATUS status) {
                     if (STATUS.INITIALIZED.equals(status)) {
-                        runAfterMapInitialized();
+                        runAfterMapInitialized(webmap);
                     }
                 }
             });
@@ -96,7 +105,7 @@ public class MapActivity extends Activity {
                 
                 public void onStatusChanged(Object source, STATUS status) {
                     if (STATUS.INITIALIZED.equals(status)) {
-                        runAfterMapInitialized();
+                        runAfterMapInitialized(webmap);
                         
                         try {
                             Geodatabase gdb = new Geodatabase(new File(dataDir, "plan.geodatabase").getAbsolutePath(), true);

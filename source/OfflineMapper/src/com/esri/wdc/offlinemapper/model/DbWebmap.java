@@ -15,13 +15,18 @@
  ******************************************************************************/
 package com.esri.wdc.offlinemapper.model;
 
-public class DbWebmap {
+import java.io.Serializable;
+
+import com.esri.core.geometry.Envelope;
+
+public class DbWebmap implements Serializable {
     
     private long rowId;
     private String itemId;
     private long userId;
     private byte[] thumbnail;
     private String title;
+    private Envelope initExtent;
 
     public long getRowId() {
         return rowId;
@@ -61,6 +66,14 @@ public class DbWebmap {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public Envelope getInitExtent() {
+        return initExtent;
+    }
+
+    public void setInitExtent(Envelope initExtent) {
+        this.initExtent = initExtent;
     }
 
 }

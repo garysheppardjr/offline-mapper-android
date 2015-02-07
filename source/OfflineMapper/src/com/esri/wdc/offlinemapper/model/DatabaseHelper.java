@@ -24,10 +24,12 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
+import com.esri.core.geometry.Envelope;
+
 public class DatabaseHelper extends SQLiteOpenHelper {
     
     private static final String TAG = DatabaseHelper.class.getSimpleName();
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
     private static final String DATABASE_NAME = "database_helper_db";
     
     private static DatabaseHelper instance = null;
@@ -121,6 +123,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         case 2:
             db.execSQL("ALTER TABLE webmap ADD title TEXT");
             break;
+            
+        case 3:
+            db.execSQL("ALTER TABLE webmap ADD init_extent_min_x REAL");
+            db.execSQL("ALTER TABLE webmap ADD init_extent_min_y REAL");
+            db.execSQL("ALTER TABLE webmap ADD init_extent_max_x REAL");
+            db.execSQL("ALTER TABLE webmap ADD init_extent_max_y REAL");
+            break;
         }
     }
     
@@ -205,12 +214,18 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
-    public long insertWebmap(String itemId, long userId, byte[] thumbnail, String title) {
+    public long insertWebmap(String itemId, long userId, byte[] thumbnail, String title, Envelope initExtent) {
         ContentValues values = new ContentValues();
         values.put("item_id", itemId);
         values.put("user_id", userId);
         values.put("thumbnail", thumbnail);
         values.put("title", title);
+        if (null != initExtent) {
+            values.put("init_extent_min_x", initExtent.getXMin());
+            values.put("init_extent_min_y", initExtent.getYMin());
+            values.put("init_extent_max_x", initExtent.getXMax());
+            values.put("init_extent_max_y", initExtent.getYMax());
+        }
         SQLiteDatabase db = getWritableDatabase();
         try {
             long rowid = db.insert("webmap", null, values);
@@ -234,7 +249,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     
     public DbWebmap getWebmap(long webmapId) {
         SQLiteDatabase db = getReadableDatabase();
-        Cursor cursor = db.query("webmap", new String[] { "item_id", "user_id", "thumbnail", "title" }, "rowid = ?", new String[] { Long.toString(webmapId) }, null, null, null);
+        Cursor cursor = db.query("webmap", new String[] {
+                "item_id",
+                "user_id",
+                "thumbnail",
+                "title",
+                "init_extent_min_x",
+                "init_extent_min_y",
+                "init_extent_max_x",
+                "init_extent_max_y"
+                }, "rowid = ?", new String[] { Long.toString(webmapId) }, null, null, null);
         if (cursor.moveToFirst()) {
             DbWebmap webmap = new DbWebmap();
             webmap.setRowId(webmapId);
@@ -242,6 +266,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             webmap.setUserId(cursor.getLong(1));
             webmap.setThumbnail(cursor.getBlob(2));
             webmap.setTitle(cursor.getString(3));
+            webmap.setInitExtent(new Envelope(cursor.getDouble(4), cursor.getDouble(5), cursor.getDouble(6), cursor.getDouble(7)));
             return webmap;
         } else {
             return null;
