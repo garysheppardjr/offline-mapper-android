@@ -53,18 +53,15 @@ public class MapActivity extends Activity {
     private IdentifyListener identifyListener = null;
     private UserCredentials userCredentials = null;
     
-    private OnStatusChangedListener onStatusChangedListenerDefault = new OnStatusChangedListener() {
+    private void runAfterMapInitialized() {
+        ldm = mMapView.getLocationDisplayManager();
+        ldm.start();
         
-        public void onStatusChanged(Object source, STATUS status) {
-            if (STATUS.INITIALIZED.equals(status)) {
-                ldm = mMapView.getLocationDisplayManager();
-                ldm.start();
-                
-                identifyListener = new IdentifyListener(mMapView, userCredentials);
-                mMapView.setOnSingleTapListener(identifyListener);
-            }
-        }
-    };
+        identifyListener = new IdentifyListener(mMapView, userCredentials);
+        mMapView.setOnSingleTapListener(identifyListener);
+        
+        mMapView.setOnStatusChangedListener(null);
+    }
 
     /** Called when the activity is first created. */
     @Override
@@ -80,7 +77,13 @@ public class MapActivity extends Activity {
         if (NetworkModel.isConnected(this)) {
             String webmapUrl = String.format("%s/home/item.html?id=%s", portalUrl, webMapId);
             mMapView = new MapView(this, webmapUrl, userCredentials, null, null);
-            mMapView.setOnStatusChangedListener(onStatusChangedListenerDefault);
+            mMapView.setOnStatusChangedListener(new OnStatusChangedListener() {
+                public void onStatusChanged(Object source, STATUS status) {
+                    if (STATUS.INITIALIZED.equals(status)) {
+                        runAfterMapInitialized();
+                    }
+                }
+            });
         } else {
             File theDataDir = new File(Environment.getExternalStorageDirectory(), "data");
             if (!theDataDir.exists()) {
@@ -93,6 +96,8 @@ public class MapActivity extends Activity {
                 
                 public void onStatusChanged(Object source, STATUS status) {
                     if (STATUS.INITIALIZED.equals(status)) {
+                        runAfterMapInitialized();
+                        
                         try {
                             Geodatabase gdb = new Geodatabase(new File(dataDir, "plan.geodatabase").getAbsolutePath(), true);
                             if (null != gdb) {
@@ -106,8 +111,6 @@ public class MapActivity extends Activity {
                         } catch (FileNotFoundException e) {
                             Log.e(TAG, "Couldn't load local Runtime geodatabase", e);
                         }
-                        
-                        mMapView.setOnStatusChangedListener(onStatusChangedListenerDefault);
                     }
                 }
             });
