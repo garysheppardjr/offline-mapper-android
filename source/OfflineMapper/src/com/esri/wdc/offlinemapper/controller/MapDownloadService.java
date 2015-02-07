@@ -32,6 +32,7 @@ import com.esri.core.portal.PortalQueryResultSet;
 import com.esri.core.portal.WebMap;
 import com.esri.core.portal.WebMapLayer;
 import com.esri.wdc.offlinemapper.model.DatabaseHelper;
+import com.esri.wdc.offlinemapper.model.NetworkModel;
 import com.esri.wdc.offlinemapper.view.WebMapAdapter;
 
 public class MapDownloadService extends Service {
@@ -52,43 +53,45 @@ public class MapDownloadService extends Service {
     private void runServiceLoop(String portalUrl,
             UserCredentials userCredentials) {
         while (keepRunning) {
-            final Portal portal = new Portal(portalUrl, userCredentials);
-            
-            DatabaseHelper db = DatabaseHelper.getInstance(getApplicationContext());
-            long userId = db.insertUser(userCredentials.getUserName(), portalUrl);
-            if (0 > userId) {
-                userId = db.getUserId(userCredentials.getUserName(), portalUrl);
-            }
-            
-            final PortalQueryParams params = WebMapAdapter.getWebMapQueryParams(userCredentials.getUserName());
-            PortalQueryResultSet<PortalItem> theResultSet = null;
-            try {
-                theResultSet = portal.findItems(params);
-            } catch (Exception e) {
-                Log.e(TAG, "Couldn't find portal items", e);
-            }
-            if (null != theResultSet) {
-                List<PortalItem> items = theResultSet.getResults();
-                for (PortalItem item : items) {
-                    try {
-                        WebMap webmap = WebMap.newInstance(item);
-                        byte[] thumbnailBytes = item.fetchThumbnail();
-                        long webmapId = db.insertWebmap(item.getItemId(), userId, thumbnailBytes, item.getTitle());
-                        if (0 > webmapId) {
-                            webmapId = db.getWebmapId(item.getItemId());
-                        }
-                        BaseMap basemap = webmap.getBaseMap();
-                        Log.d(TAG, "basemap is called " + basemap.getTitle());
-                        List<WebMapLayer> basemapLayers = basemap.getBaseMapLayers();
-                        for (int i = 0; i < basemapLayers.size(); i++) {
-                            WebMapLayer layer = basemapLayers.get(i);
-                            long basemapLayerId = db.insertBasemapLayer(layer.getUrl());
-                            if (0 > basemapLayerId) {
-                                basemapLayerId = db.getBasemapLayerId(layer.getUrl());
+            if (NetworkModel.isConnected(getApplicationContext())) {
+                final Portal portal = new Portal(portalUrl, userCredentials);
+                
+                DatabaseHelper db = DatabaseHelper.getInstance(getApplicationContext());
+                long userId = db.insertUser(userCredentials.getUserName(), portalUrl);
+                if (0 > userId) {
+                    userId = db.getUserId(userCredentials.getUserName(), portalUrl);
+                }
+                
+                final PortalQueryParams params = WebMapAdapter.getWebMapQueryParams(userCredentials.getUserName());
+                PortalQueryResultSet<PortalItem> theResultSet = null;
+                try {
+                    theResultSet = portal.findItems(params);
+                } catch (Exception e) {
+                    Log.e(TAG, "Couldn't find portal items", e);
+                }
+                if (null != theResultSet) {
+                    List<PortalItem> items = theResultSet.getResults();
+                    for (PortalItem item : items) {
+                        try {
+                            WebMap webmap = WebMap.newInstance(item);
+                            byte[] thumbnailBytes = item.fetchThumbnail();
+                            long webmapId = db.insertWebmap(item.getItemId(), userId, thumbnailBytes, item.getTitle());
+                            if (0 > webmapId) {
+                                webmapId = db.getWebmapId(item.getItemId());
                             }
+                            BaseMap basemap = webmap.getBaseMap();
+                            Log.d(TAG, "basemap is called " + basemap.getTitle());
+                            List<WebMapLayer> basemapLayers = basemap.getBaseMapLayers();
+                            for (int i = 0; i < basemapLayers.size(); i++) {
+                                WebMapLayer layer = basemapLayers.get(i);
+                                long basemapLayerId = db.insertBasemapLayer(layer.getUrl());
+                                if (0 > basemapLayerId) {
+                                    basemapLayerId = db.getBasemapLayerId(layer.getUrl());
+                                }
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Couldn't read returned web map", e);
                         }
-                    } catch (Exception e) {
-                        Log.e(TAG, "Couldn't read returned web map", e);
                     }
                 }
             }
