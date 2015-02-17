@@ -89,15 +89,6 @@ public class MapDownloadService extends Service {
                         try {
                             WebMap webmap = WebMap.newInstance(item);
                             byte[] thumbnailBytes = item.fetchThumbnail();
-                            {
-                                //TODO ugly demo hack! Remove after demo
-                                long endItem = System.currentTimeMillis();
-                                try {
-                                    Thread.sleep(5L * (endItem - startItem));
-                                } catch (InterruptedException e) {
-                                    
-                                }
-                            }
                             long webmapId = db.insertWebmap(item.getItemId(), userId, thumbnailBytes, item.getTitle(), webmap.getInitExtent());
                             if (0 > webmapId) {
                                 webmapId = db.getWebmapId(item.getItemId());
