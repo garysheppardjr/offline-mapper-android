@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    
+    <string name="clientId">rTGckDwBc4ANyuMS</string>
+    
+    <string name="app_name">Mayday</string>
+    <string name="label_map_activity">Map</string>
+    <string name="label_map_chooser_activity">Choose a Map</string>
+    <string name="label_login_activity">Login</string>
+    <string name="title_activity_map_chooser">Map Chooser</string>
+    <string name="action_connectionIndicator">Connection Indicator</string>
+    <string name="title_activity_login">Login</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+    <string name="enter_pin">Enter your PIN</string>
+    <string name="create_pin">Create a PIN</string>
+    <string name="confirm_pin">Type your PIN again</string>
+    <string name="ok">OK</string>
+    <string name="retry">Retry</string>
+    <string name="error_pin_mismatch">Your PIN entries didn\'t match. Try again.</string>
+    <string name="logout">Logout</string>
+    <string name="disconnectedTitle">Give us something to work with here.</string>
+    <string name="disconnectedDetails">We don\'t have your login info saved, so we don\'t have any maps saved yet. Try again later when you\'re connected.</string>
+    <string name="visibility">Visibility</string>
+    
+</resources>
